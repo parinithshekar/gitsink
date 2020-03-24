@@ -1,0 +1,9 @@
+*~
+*#
+.cache/
+bin/
+dist/
+
+meraki-cli
+cp.out
+coverage.html
