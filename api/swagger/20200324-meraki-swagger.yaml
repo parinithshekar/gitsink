@@ -27851,7 +27851,7 @@ definitions:
       body:
         description: The body of the action
         example: {}
-        type: object
+        type: string
         default: '{}'
     required:
     - resource
