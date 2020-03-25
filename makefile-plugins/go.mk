@@ -49,7 +49,7 @@ build-linux:  # Build for Linux.
 .PHONY: format
 format:  # Auto-format all Go files not in vendor dir.
 	@echo "==> Auto-formatting all Go files not in vendor dir."
-	gofmt -s -w $(GOFILES)
+	@gofmt -s -w $(GOFILES)
 
 .PHONY: lint
 lint:  # Lint all Go source code using GolangCI-Lint.

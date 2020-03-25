@@ -57,10 +57,10 @@ clean:  # Clean temporary files.
 	rm -f ./*.pprof
 	rm -f ./cp.out
 	rm -f ./$(PROGRAM)
+	rm -rf ./.cache/*
 	rm -rf ./bin/*
 	rm -rf ./build/*
-	rm -rf .cache/*
-	rm -rf dist/
+	rm -rf ./dist/*
 
 .PHONY: deps
 deps:  # Install dependencies for development.
@@ -69,7 +69,7 @@ deps: deps-go deps-swagger
 .PHONY: gen
 gen: models/action.go  # Regenerate generated artifacts.
 models/action.go: api/swagger/meraki-swagger.yaml
-	./bin/swagger generate client -f ./api/swagger/meraki-swagger.yaml
+	./bin/swagger generate client -f ./api/swagger/meraki-swagger.yaml --name $(PROGRAM)
 
 .PHONY: validate
 validate:
