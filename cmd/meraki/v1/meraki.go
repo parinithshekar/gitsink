@@ -36,7 +36,7 @@ func Execute() {
 	var (
 		// meraki
 		app          = kingpin.New("meraki", "The Meraki CLI command.")
-		appAuthToken = app.Flag("auth-token", "Auth token.").
+		appAuthToken = app.Flag("auth-token", "Auth token. Export env var MERAKI_AUTH_TOKEN as an alternative").
 				Default("").OverrideDefaultFromEnvar("MERAKI_AUTH_TOKEN").String()
 		appLogLevel = app.Flag("log-level", "Set log-level (trace|debug|info|warn|error|fatal|panic).").
 				Default("info").OverrideDefaultFromEnvar("MERAKI_LOG_LEVEL").String()
