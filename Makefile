@@ -13,7 +13,7 @@ $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(CACHE_DIR))
 
 PROGRAM    := meraki-cli
-LICENSE    := All-rights-reserved
+LICENSE    := Apache-License-2.0
 PACKAGE    := github.com/cisco-sso/$(PROGRAM)
 URL        := https://$(PACKAGE)
 DOCKER_TAG := $(GIT_HASH)
