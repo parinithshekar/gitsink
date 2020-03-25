@@ -77,8 +77,9 @@ validate:
 
 .PHONY: demo
 demo: ## run and record the demo-magic script
+	which ttyrec || (sudo apt-get update && sudo apt-get install ttyrec)
 	ttyrec -e './demo/demo.sh' ./demo/recording.ttyrec
-	./bin/ttyrec2gif -in ./demo/recording.ttyrec -out demo/demo.gif -s 1.0 -col 120 -row 40
+	./bin/ttyrec2gif -in ./demo/recording.ttyrec -out demo/demo.gif -s 1.0 -col 120 -row 45
 	rm -f ./demo/recording.ttyrec
 
 # TODO This should be moved to makefile-plugins
