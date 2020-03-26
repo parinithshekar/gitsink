@@ -17,6 +17,7 @@ import (
 	api_events "github.com/cisco-sso/meraki-cli/client/events"
 	api_networks "github.com/cisco-sso/meraki-cli/client/networks"
 	api_organizations "github.com/cisco-sso/meraki-cli/client/organizations"
+	api_ssids "github.com/cisco-sso/meraki-cli/client/s_s_i_ds"
 	pkg "github.com/cisco-sso/meraki-cli/pkg/v1"
 	logger "github.com/cisco-sso/meraki-cli/wrap/logrus/v1"
 	profile "github.com/cisco-sso/meraki-cli/wrap/profile/v1"
@@ -77,6 +78,11 @@ func Execute() {
 		// meraki networks get
 		appNetworksGet          = appNetworks.Command("get", "Get a network.")
 		appNetworksGetNetworkId = appNetworksGet.Flag("network-id", "ID of the network.").Required().String()
+
+		// meraki networks ssids list
+		appNetworksSsids              = appNetworks.Command("ssid", "SSID commands.")
+		appNetworksSsidsList          = appNetworksSsids.Command("list", "List all SSIDs for a network.")
+		appNetworksSsidsListNetworkId = appNetworksSsidsList.Flag("network-id", "ID of the network.").Required().String()
 
 		///////////////////////////////////////
 		// meraki organizations
@@ -171,6 +177,14 @@ func Execute() {
 			params := api_networks.NewGetNetworkParams()
 			params.NetworkID = *appNetworksGetNetworkId
 			return client.Networks.GetNetwork(params, authInfo)
+		}
+		printPayload(f, log)
+
+	case appNetworksSsidsList.FullCommand():
+		f := func() (interface{}, error) {
+			params := api_ssids.NewGetNetworkSsidsParams()
+			params.NetworkID = *appNetworksSsidsListNetworkId
+			return client.SsiDs.GetNetworkSsids(params, authInfo)
 		}
 		printPayload(f, log)
 
