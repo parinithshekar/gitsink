@@ -13,6 +13,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	apiclient "github.com/cisco-sso/meraki-cli/client"
+	api_clients "github.com/cisco-sso/meraki-cli/client/clients"
 	api_devices "github.com/cisco-sso/meraki-cli/client/devices"
 	api_events "github.com/cisco-sso/meraki-cli/client/events"
 	api_networks "github.com/cisco-sso/meraki-cli/client/networks"
@@ -78,6 +79,11 @@ func Execute() {
 		// meraki networks get
 		appNetworksGet          = appNetworks.Command("get", "Get a network.")
 		appNetworksGetNetworkId = appNetworksGet.Flag("network-id", "ID of the network.").Required().String()
+
+		// meraki networks clients list
+		appNetworksClients              = appNetworks.Command("client", "Client commands.")
+		appNetworksClientsList          = appNetworksClients.Command("list", "List all Clients for a network.")
+		appNetworksClientsListNetworkId = appNetworksClientsList.Flag("network-id", "ID of the network.").Required().String()
 
 		// meraki networks ssids list
 		appNetworksSsids              = appNetworks.Command("ssid", "SSID commands.")
@@ -177,6 +183,14 @@ func Execute() {
 			params := api_networks.NewGetNetworkParams()
 			params.NetworkID = *appNetworksGetNetworkId
 			return client.Networks.GetNetwork(params, authInfo)
+		}
+		printPayload(f, log)
+
+	case appNetworksClientsList.FullCommand():
+		f := func() (interface{}, error) {
+			params := api_clients.NewGetNetworkClientsParams()
+			params.NetworkID = *appNetworksClientsListNetworkId
+			return client.Clients.GetNetworkClients(params, authInfo)
 		}
 		printPayload(f, log)
 
