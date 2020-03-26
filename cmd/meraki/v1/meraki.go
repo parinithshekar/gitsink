@@ -81,12 +81,12 @@ func Execute() {
 		appNetworksGetNetworkId = appNetworksGet.Flag("network-id", "ID of the network.").Required().String()
 
 		// meraki networks clients list
-		appNetworksClients              = appNetworks.Command("client", "Client commands.")
+		appNetworksClients              = appNetworks.Command("clients", "Client commands.")
 		appNetworksClientsList          = appNetworksClients.Command("list", "List all Clients for a network.")
 		appNetworksClientsListNetworkId = appNetworksClientsList.Flag("network-id", "ID of the network.").Required().String()
 
 		// meraki networks ssids list
-		appNetworksSsids              = appNetworks.Command("ssid", "SSID commands.")
+		appNetworksSsids              = appNetworks.Command("ssids", "SSID commands.")
 		appNetworksSsidsList          = appNetworksSsids.Command("list", "List all SSIDs for a network.")
 		appNetworksSsidsListNetworkId = appNetworksSsidsList.Flag("network-id", "ID of the network.").Required().String()
 

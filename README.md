@@ -41,6 +41,12 @@ Commands:
   networks get --network-id=NETWORK-ID
     Get a network.
 
+  networks clients list --network-id=NETWORK-ID
+    List all Clients for a network.
+
+  networks ssids list --network-id=NETWORK-ID
+    List all SSIDs for a network.
+
   organizations list
     List all organizations.
 
@@ -54,6 +60,13 @@ Commands:
 ## Demo
 
 ![Animated Image of Terminal](https://github.com/cisco-sso/meraki-cli/raw/master/demo/demo.gif)
+
+
+## Installing
+
+```
+go get github.com/cisco-sso/meraki-cli
+```
 
 
 ## Building

@@ -43,15 +43,19 @@ pe  "# Subsequent calls will use the network ${NETWORK}"
 sleep ${SLEEPTIME}
 
 pe "# List the wireless SSIDs within the network."
-pe "${CLI} networks ssid list --network-id=${NETWORK}"
+pe "${CLI} networks ssids list --network-id=${NETWORK}"
 sleep ${SLEEPTIME}
 
 pe "# List the clients within the network."
-pe "${CLI} networks client list --network-id=${NETWORK}"
+pe "${CLI} networks clients list --network-id=${NETWORK}"
 sleep ${SLEEPTIME}
 
 pe "# List the events of type 'appliance' within the network."
 pe "${CLI} events list --network-id=${NETWORK} --product-type=appliance"
+sleep ${SLEEPTIME}
+
+pe "# List the events of type 'wireless' within the network."
+pe "${CLI} events list --network-id=${NETWORK} --product-type=wireless"
 sleep ${SLEEPTIME}
 
 pe "# That's it for the demo.  Thanks for watching!"
