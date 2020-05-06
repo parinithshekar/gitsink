@@ -24,8 +24,8 @@ import (
 	"runtime"
 	"testing"
 
-	pkg "github.com/cisco-sso/meraki-cli/pkg/v1"
-	logger "github.com/cisco-sso/meraki-cli/wrap/logrus/v1"
+	pkg "github.com/parishekar/github-migration-cli/pkg/v1"
+	logger "github.com/parishekar/github-migration-cli/wrap/logrus/v1"
 	"github.com/stretchr/testify/require"
 )
 

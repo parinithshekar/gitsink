@@ -4,7 +4,7 @@
 
 ACTUAL_PWD := $(PWD)
 PLUGINS_DIR := ./makefile-plugins
-GO_SOURCE_PATHS := ./ client/... cmd/... info/... models/... pkg/... wrap/...
+GO_SOURCE_PATHS := ./ cmd/... info/... pkg/... wrap/...
 
 # These must be included first.
 include $(PLUGINS_DIR)/common.mk
@@ -12,13 +12,13 @@ include $(PLUGINS_DIR)/common.mk
 $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(CACHE_DIR))
 
-PROGRAM    := meraki-cli
+PROGRAM    := github-migration-cli
 LICENSE    := Apache-License-2.0
-PACKAGE    := github.com/cisco-sso/$(PROGRAM)
+PACKAGE    := github.com/parishekar/$(PROGRAM)
 URL        := https://$(PACKAGE)
 DOCKER_TAG := $(GIT_HASH)
 TARGETS    := darwin/amd64 linux/amd64 windows/amd64
-REPO_NAME  := meraki-cli
+REPO_NAME  := github-migration-cli
 
 GOFLAGS     := GOFLAGS="-mod=vendor"  # For vendored deps.
 CGO_ENABLED := 0
@@ -35,15 +35,15 @@ GOFILES := $(shell find . -type d \( -name .git -o -name vendor -o -name .submod
 
 include $(PLUGINS_DIR)/docker.mk
 include $(PLUGINS_DIR)/go.mk
-include $(PLUGINS_DIR)/swagger.mk
+# include $(PLUGINS_DIR)/swagger.mk
 
 .PHONY: all
 all:  # Run generally applicable Makefile targets (w/o lint).
-all: vendor deps gen format test report build
+all: vendor deps format test report build
 
 .PHONY: all-w-lint
 all-w-lint:  # Run generally applicable Makefile targets (w/lint).
-all-w-lint: vendor deps gen format test report lint-go build
+all-w-lint: vendor deps format test report lint-go build
 
 # TODO change makefile-plugins
 .PHONY: build
@@ -64,23 +64,23 @@ clean:  # Clean temporary files.
 
 .PHONY: deps
 deps:  # Install dependencies for development.
-deps: deps-go deps-swagger
+deps: deps-go # deps-swagger
 
-.PHONY: gen
-gen: models/action.go  # Regenerate generated artifacts.
-models/action.go: api/swagger/meraki-swagger.yaml
-	./bin/swagger generate client -f ./api/swagger/meraki-swagger.yaml --name $(PROGRAM)
+# .PHONY: gen
+# gen: models/action.go  # Regenerate generated artifacts.
+# models/action.go: api/swagger/meraki-swagger.yaml
+# 	./bin/swagger generate client -f ./api/swagger/meraki-swagger.yaml --name $(PROGRAM)
 
-.PHONY: validate
-validate:
-	./bin/swagger validate ./api/swagger/meraki-swagger.yaml
+# .PHONY: validate
+# validate:
+# 	./bin/swagger validate ./api/swagger/meraki-swagger.yaml
 
-.PHONY: demo
-demo: ## run and record the demo-magic script
-	which ttyrec || (sudo apt-get update && sudo apt-get install ttyrec)
-	ttyrec -e './demo/demo.sh' ./demo/recording.ttyrec
-	./bin/ttyrec2gif -in ./demo/recording.ttyrec -out demo/demo.gif -s 1.0 -col 120 -row 45
-	rm -f ./demo/recording.ttyrec
+# .PHONY: demo
+# demo: ## run and record the demo-magic script
+# 	which ttyrec || (sudo apt-get update && sudo apt-get install ttyrec)
+# 	ttyrec -e './demo/demo.sh' ./demo/recording.ttyrec
+# 	./bin/ttyrec2gif -in ./demo/recording.ttyrec -out demo/demo.gif -s 1.0 -col 120 -row 45
+# 	rm -f ./demo/recording.ttyrec
 
 # TODO This should be moved to makefile-plugins
 .PHONY: dist

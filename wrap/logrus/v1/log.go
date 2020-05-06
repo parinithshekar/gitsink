@@ -24,19 +24,19 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	pkg "github.com/cisco-sso/meraki-cli/pkg/v1"
+	pkg "github.com/parishekar/github-migration-cli/pkg/v1"
 )
 
 var mutex = &sync.Mutex{}
 
-// Represents loggo logger and fields to support structured logging.
+// Logger Represents loggo logger and fields to support structured logging.
 type Logger struct {
 	entry *logrus.Entry
 	// if true , Will clear any field that is set using WithField(s) call after a log line is logged/printed.
 	autoClearFields bool // Default: true
 }
 
-// Initiate logger.
+// New Initiate logger.
 func New() *Logger {
 	logger := logrus.New()
 	logger.SetReportCaller(true)
@@ -70,29 +70,29 @@ func prettyfier(r *runtime.Frame) (string, string) {
 	return "", ""
 }
 
-// if true , Will clear any field that is set using WithField(s) call after a log line is logged/printed.
+// AutoClearFields if true , Will clear any field that is set using WithField(s) call after a log line is logged/printed.
 func (l *Logger) AutoClearFields(enabled bool) {
 	l.autoClearFields = enabled
 }
 
-// Reset all fields set by WithField(s) method.
+// ClearFields Reset all fields set by WithField(s) method.
 func (l *Logger) ClearFields() {
 	mutex.Lock()
 	defer mutex.Unlock()
 	l.entry.Data = make(logrus.Fields)
 }
 
-// Log at error level.
+// Errorf Log at error level.
 func (l *Logger) Errorf(msg string, args ...interface{}) {
 	l.Logf(logrus.ErrorLevel, msg, args...)
 }
 
-// Log at info level.
+// Infof Log at info level.
 func (l *Logger) Infof(msg string, args ...interface{}) {
 	l.Logf(logrus.InfoLevel, msg, args...)
 }
 
-// Log at fatal level.
+// Fatalf Log at fatal level.
 func (l *Logger) Fatalf(msg string, args ...interface{}) {
 	if l.entry.Logger.IsLevelEnabled(logrus.FatalLevel) {
 		l.Logf(logrus.FatalLevel, msg, args...)
@@ -100,7 +100,7 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 	}
 }
 
-// Log at panic level.
+// Panicf Log at panic level.
 func (l *Logger) Panicf(msg string, args ...interface{}) {
 	i := make([]interface{}, 0)
 	i = append(i, msg)
@@ -108,22 +108,22 @@ func (l *Logger) Panicf(msg string, args ...interface{}) {
 	log.Panic(i)
 }
 
-// Log at debug level.
+// Debugf Log at debug level.
 func (l *Logger) Debugf(msg string, args ...interface{}) {
 	l.Logf(logrus.DebugLevel, msg, args...)
 }
 
-// Log at trace level.
+// Tracef Log at trace level.
 func (l *Logger) Tracef(msg string, args ...interface{}) {
 	l.Logf(logrus.TraceLevel, msg, args...)
 }
 
-// Log at warning level.
+// Warningf Log at warning level.
 func (l *Logger) Warningf(msg string, args ...interface{}) {
 	l.Logf(logrus.WarnLevel, msg, args...)
 }
 
-// Log the given error as a seperate field.
+// WithError Log the given error as a seperate field.
 func (l *Logger) WithError(err error) pkg.Logger {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -131,7 +131,7 @@ func (l *Logger) WithError(err error) pkg.Logger {
 	return l
 }
 
-// Add given key, value as custom field and value in log.
+// WithField Add given key, value as custom field and value in log.
 func (l *Logger) WithField(k string, v interface{}) pkg.Logger {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -139,7 +139,7 @@ func (l *Logger) WithField(k string, v interface{}) pkg.Logger {
 	return l
 }
 
-// Add given key, value pairs as custom fields and values in log.
+// WithFields Add given key, value pairs as custom fields and values in log.
 func (l *Logger) WithFields(kv map[string]interface{}) pkg.Logger {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -147,7 +147,7 @@ func (l *Logger) WithFields(kv map[string]interface{}) pkg.Logger {
 	return l
 }
 
-// Log at given log level.
+// Logf Log at given log level.
 func (l *Logger) Logf(level logrus.Level, msg string, args ...interface{}) {
 	mutex.Lock()
 	l.entry.Logf(level, msg, args...)
@@ -158,24 +158,24 @@ func (l *Logger) Logf(level logrus.Level, msg string, args ...interface{}) {
 	}
 }
 
-// Set log level
-func (l *Logger) SetLevel(level_str string) {
-	if level, err := logrus.ParseLevel(level_str); err == nil {
+// SetLevel Set log level
+func (l *Logger) SetLevel(levelStr string) {
+	if level, err := logrus.ParseLevel(levelStr); err == nil {
 		l.entry.Logger.SetLevel(level)
 	}
 }
 
-// Current log level
+// LogLevel Current log level
 func (l *Logger) LogLevel() string {
 	return l.entry.Logger.GetLevel().String()
 }
 
-// Change output. Default output is os.Stderr.
+// SetOutput Change output. Default output is os.Stderr.
 func (l *Logger) SetOutput(w io.Writer) {
 	l.entry.Logger.SetOutput(w)
 }
 
-// Change output. Default output is os.Stderr.
+// Logger Change output. Default output is os.Stderr.
 func (l *Logger) Logger() *logrus.Logger {
 	return l.entry.Logger
 }
