@@ -16,9 +16,9 @@ jobs:
         - run:
             name: Generate coverage reports
             command: |
-            make report
-            mkdir -p /tmp/artifacts
-            cp cp.out coverage.html .cache/test_coverage_total.txt /tmp/artifacts
+                make report
+                mkdir -p /tmp/artifacts
+                cp cp.out coverage.html .cache/test_coverage_total.txt /tmp/artifacts
         - store_artifacts:
             path: /tmp/artifacts
         - run:
