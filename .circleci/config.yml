@@ -50,9 +50,17 @@ jobs:
 
 workflows:
     version: 2
-    main:
-        jobs:
-            - build
-            - publish-docker-image:
-                requires:
-                    - build
+        main:
+            jobs:
+                - build:
+                    filters:
+                        branches:
+                            only:
+                                - dockerize
+                - publish-docker-image:
+                    filters:
+                        branches:
+                            only:
+                                - dockerize
+                    requires:
+                        - build
