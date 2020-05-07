@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ciscosso/kdk:1.20.1
+      - image: ciscosso/kdk:1.17.0
         environment:
           LANG: en_US.UTF-8
           PATH: "/usr/local/pyenv/plugins/pyenv-virtualenv/shims:/usr/local/pyenv/shims:/usr/local/pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/go/bin:/go/bin:./bin/linux_amd64/:./vendor/bin"
@@ -31,7 +31,7 @@ jobs:
 
   publish-docker-image:
     docker:
-      - image: ciscosso/kdk:1.20.1
+      - image: ciscosso/kdk:1.17.0
         environment:
           LANG: en_US.UTF-8
           PATH: "/usr/local/pyenv/plugins/pyenv-virtualenv/shims:/usr/local/pyenv/shims:/usr/local/pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/go/bin:/go/bin:./bin/linux_amd64/:./vendor/bin"
