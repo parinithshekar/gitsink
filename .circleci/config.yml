@@ -41,7 +41,7 @@ jobs:
       - checkout
       - run:
           name: Login to docker
-          command: echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
+          command: make docker-login
       - run:
           name: Build and push docker image
           command: make docker-all
