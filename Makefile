@@ -14,7 +14,7 @@ $(shell mkdir -p $(CACHE_DIR))
 
 PROGRAM    := github-migration-cli
 LICENSE    := Apache-License-2.0
-PACKAGE    := github.com/parishekar/$(PROGRAM)
+PACKAGE    := github.com/parinithshekar/$(PROGRAM)
 URL        := https://$(PACKAGE)
 DOCKER_TAG := $(GIT_HASH)
 TARGETS    := darwin/amd64 linux/amd64 windows/amd64

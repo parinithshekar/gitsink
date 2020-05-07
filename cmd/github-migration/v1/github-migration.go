@@ -11,9 +11,9 @@ import (
 	// "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	// pkg "github.com/parishekar/github-migration-cli/pkg/v1"
-	// logger "github.com/parishekar/github-migration-cli/wrap/logrus/v1"
-	profile "github.com/parishekar/github-migration-cli/wrap/profile/v1"
+	// pkg "github.com/parinithshekar/github-migration-cli/pkg/v1"
+	// logger "github.com/parinithshekar/github-migration-cli/wrap/logrus/v1"
+	profile "github.com/parinithshekar/github-migration-cli/wrap/profile/v1"
 	// runtime "github.com/go-openapi/runtime"
 	// httptransport "github.com/go-openapi/runtime/client"
 )

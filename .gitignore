@@ -3,6 +3,7 @@
 .cache/
 bin/
 dist/
+vendor/
 
 meraki-cli
 cp.out

@@ -8,11 +8,11 @@ docker-local:  # Build a docker image for local development.
 
 .PHONY: docker-build
 docker-build:  # Build a docker image without pushing it out.
-	docker build -t $(REPO_NAME):$(DOCKER_TAG) .
+	docker build -t $(DOCKER_USER)/$(REPO_NAME):$(DOCKER_TAG) .
 
 .PHONY: docker-push
 docker-push:  # Build a docker image without pushing it out.
-	docker push $(REPO_NAME):$(DOCKER_TAG)
+	docker push $(DOCKER_USER)/$(REPO_NAME):$(DOCKER_TAG)
 
 .PHONY: docker-all
 docker-all: docker-build docker-push  # Build a docker image, tag, and push.

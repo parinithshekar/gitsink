@@ -1,4 +1,4 @@
-module github.com/parishekar/github-migration-cli
+module github.com/parinithshekar/github-migration-cli
 
 go 1.13
 

@@ -24,8 +24,8 @@ import (
 	"runtime"
 	"testing"
 
-	pkg "github.com/parishekar/github-migration-cli/pkg/v1"
-	logger "github.com/parishekar/github-migration-cli/wrap/logrus/v1"
+	pkg "github.com/parinithshekar/github-migration-cli/pkg/v1"
+	logger "github.com/parinithshekar/github-migration-cli/wrap/logrus/v1"
 	"github.com/stretchr/testify/require"
 )
 
