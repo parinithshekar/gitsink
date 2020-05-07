@@ -9,25 +9,25 @@ jobs:
           GO111MODULE: "on"
           GOPATH: /go
     steps:
-        - checkout
-        - run:
-            name: Make locally
-            command: make all
-        - run:
-            name: Generate coverage reports
-            command: |
-              make report
-              mkdir -p /tmp/artifacts
-              cp cp.out coverage.html .cache/test_coverage_total.txt /tmp/artifacts
-        - store_artifacts:
-            path: /tmp/artifacts
-        - run:
-            name: Build release artifacts
-            command: make dist
-        - persist_to_workspace:
-            root: .
-            paths:
-                - dist
+      - checkout
+      - run:
+          name: Make locally
+          command: make all
+      - run:
+          name: Generate coverage reports
+          command: |
+            make report
+            mkdir -p /tmp/artifacts
+            cp cp.out coverage.html .cache/test_coverage_total.txt /tmp/artifacts
+      - store_artifacts:
+          path: /tmp/artifacts
+      - run:
+          name: Build release artifacts
+          command: make dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
 
   publish-docker-image:
     docker:
@@ -49,18 +49,18 @@ jobs:
           command: make docker-all
 
 workflows:
-    version: 2
-        main:
-            jobs:
-                - build:
-                    filters:
-                        branches:
-                            only:
-                                - dockerize
-                - publish-docker-image:
-                    filters:
-                        branches:
-                            only:
-                                - dockerize
-                    requires:
-                        - build
+  version: 2
+  main:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - dockerize
+      - publish-docker-image:
+          filters:
+            branches:
+              only:
+                - dockerize
+          requires:
+            - build
