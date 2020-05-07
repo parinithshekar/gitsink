@@ -10,12 +10,11 @@ WORKDIR /dist
 RUN cp /src/github-migration-cli .
 
 # STAGE: final
-FROM debian:stretch-slim
+FROM alpine
 
 # Add Tini
-ENV TINI_VERSION v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
+RUN apk add --no-cache tini
+# Tini is now available at /sbin/tini
 
 WORKDIR /app
 COPY --from=builder /dist/github-migration-cli .
@@ -23,5 +22,5 @@ COPY --from=builder /dist/github-migration-cli .
 # Run your program under Tini
 # Configure runtime behavior
 ENV PATH="/app:${PATH}"
-ENTRYPOINT ["/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["github-migration-cli"]
