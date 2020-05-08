@@ -44,17 +44,17 @@ jobs:
 
 workflows:
   version: 2
-  main:
+  build-deploy:
     jobs:
       - build:
           filters:
-            branches:
-              only:
-                - dockerize
+            tags:
+              only: /.*/
       - publish-docker-image:
-          filters:
-            branches:
-              only:
-                - dockerize
           requires:
             - build
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
