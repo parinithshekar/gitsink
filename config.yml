@@ -1,0 +1,132 @@
+integrations:
+  # Create a separate integration per combination of
+  # <team>-<sourceKind>-<targetKind>
+
+  ## Integration 1
+  - name: erwin-bb-to-ghe
+    enabled: true
+    sync:
+      type: loop
+      period_seconds: 600
+    source:
+      type: bitbucket-server
+      base_url: https://bitbucket-erw.company.com
+
+      # There might be different accounts and access token for different
+      # integrations. Better to ask for the ENV VAR NAME instead of
+      # enforcing the var name?
+      account_id: ERWIN_BB_ACCOUNT_ID
+      access_token: ERWIN_BB_ACCESS_TOKEN
+
+      # 'kind' format varies depending on type: Bitbucket or Github
+      # Bitbucket supports 'project/<name>'' and 'user/<name>''
+      # Github supports 'org/<name>' and 'user/<name>'
+      kind: project/SNK
+      repos:
+        # List of filters to be evaluated in order.
+        # Order does not matter other than includes are processed
+        # before excludes. Regexes implied by leading and trailing '/'
+        filters:
+          include:
+            - python-utility
+            - /^.*-wrapper$/
+          exclude:
+            - java-wrapper
+            - /^.*-legacy$/
+    target:
+      type: github-enterprise
+      base_url: https://erw-github.company.com
+      account_id: ERW_GHE_ACCOUNT_ID
+      access_token: ERW_GHE_ACCESS_TOKEN
+
+      kind: org/snk
+      # teams are list of teams to add (no pattern support)
+      teams:
+        read_only:
+          - team-alpha
+        read_write:
+          - team-beta
+          - team-gamma
+      users:
+        read_only:
+          - user-id-1
+        read_write:
+          - user-id-2
+      # branch_modifiers allow you to rewrite target repo branch names
+      # By default, empty branch_modifiers sync exactly the same branch
+      # names from source to target
+      branch_modifiers:
+        - name: master-branch-only
+          # match can accept regex implied by leading and trailing '/'
+          match: master
+          prefix: bb-
+      branch_protection:
+        - name: protection-for-master
+          match: master
+          # The required payload for these protection requests have
+          # multiple nested fields. Yet to figure out a config format
+          protections:
+            - required_pull_request_reviews
+            - required_status_checks
+      # Example (no need to implement):
+      # - name: all-branches-except-master
+      #   match: /^(?!master).*/
+      #   prefix: bb-
+      # Example (no need to implement):
+      # - name: all-branches
+      #   match: /.*/
+      #   prefix: bb-
+      # Example (no need to implement):
+      # - name: rename-branch
+      #   match: featureX
+      #   rename: featureY
+
+  ## Integration 2
+  - name: personal-roger-bb-to-ghe
+    enabled: false
+    sync:
+      type: once
+      period_seconds: 0
+    source:
+      type: bitbucket-cloud
+      base_url: https://bitbucket.org/roger
+      account_id: ROGER_BB_ACCOUNT_ID
+      access_token: ROGER_BB_ACCESS_TOKEN
+      kind: user/roger
+      repos:
+        filters:
+          include:
+            - /.*/
+          exclude: []
+    target:
+      type: github-enterprise
+      base_url: https://rog-github.company.com
+      account_id: ROGER_GHE_ACCOUNT_ID
+      access_token: ROGER_GHE_ACCESS_TOKEN
+      kind: user/roger
+      branch_modifiers: []
+
+  ## Integration 3
+  - name: lana-ghpublic-to-ghe
+    enabled: true
+    sync:
+      type: loop
+      period_seconds: 600
+    source:
+      type: github-public
+      base_url: https://www.github.com
+      account_id: LANA_GHPUBLIC_ACCOUNT_ID
+      access_token: LANA_GHPUBLIC_ACCESS_TOKEN
+      kind: org/colorllama
+      repos:
+        filters:
+          include:
+            - /.*/
+          exclude: []
+    target:
+      type: github-enterprise
+      base_url: https://lana-github.llamacompany.com
+      account_id: LANA_GHE_ACCOUNT_ID
+      access_token: LANA_GHE_ACCESS_TOKEN
+      kind: org/seriousllama
+      branch_modifiers: []

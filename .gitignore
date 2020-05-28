@@ -8,3 +8,5 @@ vendor/
 meraki-cli
 cp.out
 coverage.html
+testConfig.yml
+.DS_Store
