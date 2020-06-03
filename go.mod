@@ -1,4 +1,4 @@
-module github.com/parinithshekar/github-migration-cli
+module github.com/parinithshekar/gitsink
 
 go 1.13
 
@@ -10,6 +10,7 @@ require (
 	github.com/google/go-github/v31 v31.0.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/ktrysmt/go-bitbucket v0.5.7
+	github.com/parinithshekar/github-migration-cli v0.0.1
 	github.com/pkg/profile v1.4.0
 	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.4.0

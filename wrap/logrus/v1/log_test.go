@@ -24,9 +24,9 @@ import (
 	"runtime"
 	"testing"
 
-	pkg "github.com/parinithshekar/github-migration-cli/pkg/v1"
-	logger "github.com/parinithshekar/github-migration-cli/wrap/logrus/v1"
-	"github.com/stretchr/testify/require"
+	pkg "github.com/parinithshekar/gitsink/pkg/v1"
+	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
+	require "github.com/stretchr/testify/require"
 )
 
 // Enforce interface implementation.

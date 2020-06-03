@@ -45,7 +45,7 @@ package v1
 import (
 	"os"
 
-	"github.com/pkg/profile"
+	profile "github.com/pkg/profile"
 )
 
 // noop is a struct that we use to explicitly do nothing.

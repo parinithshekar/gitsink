@@ -26,13 +26,12 @@ integrations:
         # List of filters to be evaluated in order.
         # Order does not matter other than includes are processed
         # before excludes. Regexes implied by leading and trailing '/'
-        filters:
-          include:
-            - python-utility
-            - /^.*-wrapper$/
-          exclude:
-            - java-wrapper
-            - /^.*-legacy$/
+        include:
+          - python-utility
+          - /^.*-wrapper$/
+        exclude:
+          - java-wrapper
+          - /^.*-legacy$/
     target:
       type: github-enterprise
       base_url: https://erw-github.company.com
@@ -94,10 +93,9 @@ integrations:
       access_token: ROGER_BB_ACCESS_TOKEN
       kind: user/roger
       repos:
-        filters:
-          include:
-            - /.*/
-          exclude: []
+        include:
+          - /.*/
+        exclude: []
     target:
       type: github-enterprise
       base_url: https://rog-github.company.com
@@ -119,10 +117,9 @@ integrations:
       access_token: LANA_GHPUBLIC_ACCESS_TOKEN
       kind: org/colorllama
       repos:
-        filters:
-          include:
-            - /.*/
-          exclude: []
+        include:
+          - /.*/
+        exclude: []
     target:
       type: github-enterprise
       base_url: https://lana-github.llamacompany.com

@@ -10,10 +10,10 @@ import (
 
 // Server struct defines the data fields in bitbucket-server object
 type Server struct {
-	BaseURL string
+	BaseURL    string
 	APIBaseURL string
-	accountID string
-	api *bitbucketv1.APIClient
+	accountID  string
+	api        *bitbucketv1.APIClient
 }
 
 // setAPIClient builds and returns an object to facilitate calls to the API
@@ -27,7 +27,7 @@ func (server *Server) setAPIClient(envAccountID, envAccessToken string) {
 }
 
 // New returns a new bitbucket-server object with metadata
-func New(baseURL, envAccountID, envAccessToken string) (*Server) {
+func New(baseURL, envAccountID, envAccessToken string) *Server {
 	var server *Server = new(Server)
 	server.BaseURL = baseURL
 	server.APIBaseURL = baseURL + "/bitbucket/rest"

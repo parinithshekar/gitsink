@@ -102,5 +102,9 @@ dist:
 		tar zcf dist/$$T.tar.gz -C $$D .; \
 	done
 
+.PHONY: reset
+reset: # Removes non-essential files
+	@echo "==> Removing sync and log files."
+	@rm -rf syncDirectory/
 
 include $(PLUGINS_DIR)/help.mk  # Must be included last.

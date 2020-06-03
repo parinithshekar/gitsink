@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Parse Reads the YAML config file and returns a corresponding map

@@ -24,7 +24,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	pkg "github.com/parinithshekar/github-migration-cli/pkg/v1"
+	pkg "github.com/parinithshekar/gitsink/pkg/v1"
 )
 
 var mutex = &sync.Mutex{}
