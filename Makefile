@@ -12,13 +12,13 @@ include $(PLUGINS_DIR)/common.mk
 $(shell mkdir -p $(BUILD_DIR))
 $(shell mkdir -p $(CACHE_DIR))
 
-PROGRAM    := github-migration-cli
+PROGRAM    := gitsink
 LICENSE    := Apache-License-2.0
 PACKAGE    := github.com/parinithshekar/$(PROGRAM)
 URL        := https://$(PACKAGE)
 DOCKER_TAG := $(GIT_HASH)
 TARGETS    := darwin/amd64 linux/amd64 windows/amd64
-REPO_NAME  := github-migration-cli
+REPO_NAME  := gitsink
 
 GOFLAGS     := GOFLAGS="-mod=vendor"  # For vendored deps.
 CGO_ENABLED := 0
