@@ -1,20 +1,20 @@
-# github-migration-cli
+# gitsink
 
-Wrok in progress CLI to migrate repositories from other providers to GitHub Enterprise or github.com
+Work in progress CLI to sync repositories from other providers to GitHub Enterprise or github.com
 
 ## Summary
 
-Migrate your  repositories from any of the repository management providers (BitBucket, GitLab, GitHub Public) to GitHub Enterprise or the public github.com.
+Sync your repositories from any of the repository management providers (BitBucket, GitLab, GitHub Public) to GitHub Enterprise or the public github.com.
 
 You can move repositories between different organizations, projects, teams, personal user accounts, etc. This tool ensures all branches and all tags are synced, with the complete commit history.
 
 ## Usage
 
 ```
-$ ./github-migration-cli
-usage: git-migration-cli [<flags>] <command> [<args> ...]
+$ ./gitsink
+usage: gitsink [<flags>] <command> [<args> ...]
 
-The Github-Migration CLI
+The Github-Sync CLI
 
 Flags:
   --help              Show context-sensitive help (also try --help-long and --help-man)
@@ -32,8 +32,8 @@ Commands:
 ```
 
 ```
-$ ./github-migration-cli sync --help
-usage: github-migration-cli sync [<flags>]
+$ ./gitsink sync --help
+usage: gitsink sync [<flags>]
 
 Sync Bitbucket and GitHub repositories
 
@@ -44,14 +44,11 @@ Flags:
   --block-new-migrations  Block new migrations and sync only existing repos on GitHub
 ```
 
-
-
 ## Installing
 
 ```
-go get github.com/parishekar/github-migration-cli
+go get github.com/parishekar/gitsink
 ```
-
 
 ## Building
 
