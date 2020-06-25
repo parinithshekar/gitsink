@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"os"
 	"fmt"
+	"os"
 	// "io/ioutil"
 	// "encoding/json"
 
@@ -11,14 +11,16 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	// pkg "github.com/parinithshekar/gitsink/pkg/v1"
-	bbcloud "github.com/parinithshekar/gitsink/plugins/input/bitbucket/cloud"
-	git "github.com/parinithshekar/gitsink/plugins/output/git"
-	ghpublic "github.com/parinithshekar/gitsink/plugins/output/github/public"
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
 	profile "github.com/parinithshekar/gitsink/wrap/profile/v1"
-	// bbserver "github.com/parinithshekar/gitsink/plugins/input/bitbucket/server"
+
 	config "github.com/parinithshekar/gitsink/common/config"
 	plugins "github.com/parinithshekar/gitsink/plugins/interfaces"
+	git "github.com/parinithshekar/gitsink/plugins/output/git"
+
+	bbcloud "github.com/parinithshekar/gitsink/plugins/input/bitbucket/cloud"
+	bbserver "github.com/parinithshekar/gitsink/plugins/input/bitbucket/server"
+	ghpublic "github.com/parinithshekar/gitsink/plugins/output/github/public"
 	// runtime "github.com/go-openapi/runtime"
 	// httptransport "github.com/go-openapi/runtime/client"
 )
@@ -56,7 +58,6 @@ func Execute() { // hello
 	p := kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	config := config.Parse()
-	fmt.Printf("%+v\n", config)
 
 	switch p {
 
@@ -83,6 +84,8 @@ func Execute() { // hello
 			switch integration.Source.Type {
 			case "bitbucket-cloud":
 				input = bbcloud.New(integration.Source)
+			case "bitbucket-server":
+				input = bbserver.New(integration.Source)
 
 			default:
 				log.Errorf("Unsupported source type: %v", integration.Source.Type)
@@ -97,7 +100,8 @@ func Execute() { // hello
 			if err != nil {
 				log.Errorf(err.Error())
 			}
-
+			fmt.Println(repos)
+			os.Exit(0)
 			// OUTPUT PLUGIN
 			// get output plugin based on output type
 			switch integration.Target.Type {

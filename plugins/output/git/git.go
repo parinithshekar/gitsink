@@ -1,8 +1,8 @@
 package git
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"strings"
 
 	git "github.com/go-git/go-git/v5"

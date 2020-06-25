@@ -1,13 +1,13 @@
 package cloud
 
 import (
-	"os"
-	"fmt"
-	"strings"
 	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
 
-	gjson "github.com/tidwall/gjson"
 	bitbucket "github.com/ktrysmt/go-bitbucket"
+	gjson "github.com/tidwall/gjson"
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
@@ -161,8 +161,18 @@ func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
 
 		repositories := []common.Repository{}
 		for _, repo := range result.Items {
+
+			repoBytes, _ := json.MarshalIndent(repo, "", "  ")
+			repoJSON := string(repoBytes)
+			// Get all metadata for the repository
+			httpCloneLink := gjson.Get(repoJSON, `Links.clone.#(name%"http*").href`).String()
+			slug := gjson.Get(repoJSON, `Slug`).String()
+			description := gjson.Get(repoJSON, `Description`).String()
+
 			newRepo := common.Repository{
-				Slug: repo.Slug,
+				Slug:        slug,
+				Source:      httpCloneLink,
+				Description: description,
 			}
 			repositories = append(repositories, newRepo)
 		}
