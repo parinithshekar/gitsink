@@ -1,15 +1,15 @@
 package public
 
 import (
-	"os"
-	"fmt"
-	"strings"
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
 
-	oauth2 "golang.org/x/oauth2"
-	gjson "github.com/tidwall/gjson"
 	github "github.com/google/go-github/v31/github"
+	gjson "github.com/tidwall/gjson"
+	oauth2 "golang.org/x/oauth2"
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
