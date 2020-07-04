@@ -1,26 +1,24 @@
 package v1
 
 import (
-	"fmt"
 	"os"
+	"fmt"
 	// "io/ioutil"
 	// "encoding/json"
 
 	// "github.com/go-openapi/strfmt"
-	// "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	// pkg "github.com/parinithshekar/gitsink/pkg/v1"
-	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
-	profile "github.com/parinithshekar/gitsink/wrap/profile/v1"
-
-	config "github.com/parinithshekar/gitsink/common/config"
-	plugins "github.com/parinithshekar/gitsink/plugins/interfaces"
-	git "github.com/parinithshekar/gitsink/plugins/output/git"
-
 	bbcloud "github.com/parinithshekar/gitsink/plugins/input/bitbucket/cloud"
 	bbserver "github.com/parinithshekar/gitsink/plugins/input/bitbucket/server"
+	git "github.com/parinithshekar/gitsink/plugins/output/git"
 	ghpublic "github.com/parinithshekar/gitsink/plugins/output/github/public"
+	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
+	profile "github.com/parinithshekar/gitsink/wrap/profile/v1"
+	config "github.com/parinithshekar/gitsink/common/config"
+	plugins "github.com/parinithshekar/gitsink/plugins/interfaces"
 	// runtime "github.com/go-openapi/runtime"
 	// httptransport "github.com/go-openapi/runtime/client"
 )
@@ -62,59 +60,94 @@ func Execute() { // hello
 	switch p {
 
 	case appSync.FullCommand():
-		log.Infof("SYNC")
-		log.Infof("App Log Level: %v\n", *appLogLevel)
-		log.Infof("Run Once: %v\n", *appSyncRunOnce)
+		fmt.Println("SYNC")
+		fmt.Printf("App Log Level: %v\n", *appLogLevel)
+		fmt.Printf("Run Once: %v\n", *appSyncRunOnce)
 		fmt.Printf("Personal Account: %v\n", *appSyncPersonalAccount)
-		log.Infof("Block New: %v\n", *appSyncBlockNewMigrations)
+		fmt.Printf("Block New: %v\n", *appSyncBlockNewMigrations)
 
 	case appInteractive.FullCommand():
-		log.Infof("INTERACTIVE")
-		log.Infof("App Log Level: %v\n", *appLogLevel)
+		fmt.Println("INTERACTIVE")
+		fmt.Printf("App Log Level: %v\n", *appLogLevel)
 
 	case appTest.FullCommand():
-		log.Infof("TEST")
+		fmt.Printf("TEST")
 		var input plugins.Input
 		var output plugins.Output
 		for _, integration := range config.Integrations {
 			fmt.Println(integration.Name)
 
+			var err error
 			// INPUT PLUGIN
 			// get input plugin based on input type
 			switch integration.Source.Type {
 			case "bitbucket-cloud":
-				input = bbcloud.New(integration.Source)
+				input, err = bbcloud.New(integration.Source)
+				
 			case "bitbucket-server":
-				input = bbserver.New(integration.Source)
-
+				input, err = bbserver.New(integration.Source)
+				
 			default:
-				log.Errorf("Unsupported source type: %v", integration.Source.Type)
+				log.WithFields(logrus.Fields{
+					"integration": integration.Name,
+					"source": integration.Source.Type,
+					}).Errorf("Unsupported source type")
 			}
-			// Authenticate credentials for reading from input
-			_, err := input.Authenticate()
+			// Error during initializing source input plugin
 			if err != nil {
-				log.Errorf(err.Error())
+				log.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"integration": integration.Name,
+					"targetType": integration.Source.Type,
+				}).Errorf("Initializing source failed")
+			}
+			
+			// Authenticate credentials for reading from input
+			_, err = input.Authenticate()
+			if err != nil {
+				log.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"integration": integration.Name,
+					"source": integration.Source.Type,
+				}).Errorf("Source authentication failed")
 			}
 			// Get repositories to sync
 			repos, err := input.Repositories(true)
 			if err != nil {
-				log.Errorf(err.Error())
+				log.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"integration": integration.Name,
+					"source": integration.Source.Type,
+				}).Errorf("Fetching repository list failed")
 			}
-			fmt.Println(repos)
-			os.Exit(0)
+
 			// OUTPUT PLUGIN
 			// get output plugin based on output type
 			switch integration.Target.Type {
 			case "github-public":
-				output = ghpublic.New(integration.Target)
+				output, err = ghpublic.New(integration.Target)
+				if err != nil {
+					log.WithFields(logrus.Fields{
+						"error": err.Error(),
+						"integration": integration.Name,
+						"targetType": integration.Target.Type,
+					}).Errorf("Initializing target failed")
+				}
 
 			default:
-				log.Errorf("Unsupported target type: %v", integration.Target.Type)
+				log.WithFields(logrus.Fields{
+					"integration": integration.Name,
+					"targetType": integration.Target.Type,
+				}).Errorf("Unsupported target type")
 			}
 			// Authenticate credentials for pushing to output
 			_, err = output.Authenticate()
 			if err != nil {
-				log.Errorf(err.Error())
+				log.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"integration": integration.Name,
+					"source": integration.Target.Type,
+				}).Errorf("Target authentication failed")
 			} else {
 				log.Infof("GITHUB PUBLIC SUCCESS")
 			}

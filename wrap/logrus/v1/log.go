@@ -20,9 +20,10 @@ import (
 	"log"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	logrus "github.com/sirupsen/logrus"
 
 	pkg "github.com/parinithshekar/gitsink/pkg/v1"
 )
@@ -40,10 +41,19 @@ type Logger struct {
 func New() *Logger {
 	logger := logrus.New()
 	logger.SetReportCaller(true)
-	logger.SetFormatter(&logrus.TextFormatter{
-		CallerPrettyfier:       prettyfier,
-		DisableLevelTruncation: true,
+	
+	// Text formatter
+	// logger.SetFormatter(&logrus.TextFormatter{
+	// 	CallerPrettyfier:       prettyfier,
+	// 	DisableLevelTruncation: true,
+	// })
+	
+	// JSON formatted logs by default
+	logger.SetFormatter(&logrus.JSONFormatter{
+		CallerPrettyfier: prettyfier,
+		PrettyPrint: true,
 	})
+	
 	e := logrus.NewEntry(logger)
 	l := Logger{entry: e}
 	l.AutoClearFields(true)
@@ -63,7 +73,15 @@ func prettyfier(r *runtime.Frame) (string, string) {
 		file := filepath.Base(f.File)
 		// If the caller isn't part of logrus files, we're done
 		if file != "log.go" && file != "entry.go" {
-			return "", fmt.Sprintf("%s:%d", file, f.Line)
+			
+			// Extract just function name from path/to/file.Function
+			function := f.Function
+			if function != "" {
+				functionSplit := strings.Split(function, ".")
+				function = functionSplit[len(functionSplit)-1]
+			}
+			
+			return function, fmt.Sprintf("%s:%d", file, f.Line)
 		}
 	}
 
