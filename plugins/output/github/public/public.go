@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	github "github.com/google/go-github/v31/github"
+	logrus "github.com/sirupsen/logrus"
 	gjson "github.com/tidwall/gjson"
 	oauth2 "golang.org/x/oauth2"
 
@@ -48,23 +49,28 @@ func (public Public) Credentials() (string, string) {
 }
 
 // New returns a new github-public object
-func New(target config.Target) *Public {
+func New(target config.Target) (*Public, error) {
 	var public *Public = new(Public)
+	log := logger.New()
 
 	// Check if env variables mentioned in config file exist
 	// check account ID env variable
 	_, exists := os.LookupEnv(target.AccountID)
 	if !exists {
-		logger.New().Errorf("Account ID not found")
-		os.Exit(1)
+		log.WithFields(logrus.Fields{
+			"accountID": target.AccountID,
+		}).Errorf("Account ID not found")
+		return nil, fmt.Errorf("Account ID not found")
 	} else {
 		public.accountID = target.AccountID
 	}
 	// check access token env variable
 	_, exists = os.LookupEnv(target.AccessToken)
 	if !exists {
-		logger.New().Errorf("Access Token not found")
-		os.Exit(1)
+		log.WithFields(logrus.Fields{
+			"accessToken": target.AccessToken,
+		}).Errorf("Access Token not found")
+		return nil, fmt.Errorf("Access Token not found")
 	} else {
 		public.accessToken = target.AccessToken
 	}
@@ -72,11 +78,13 @@ func New(target config.Target) *Public {
 	public.kind = target.Kind
 
 	public.setAPIClient()
-	return public
+	return public, nil
 }
 
 // Authenticate checks the account ID and access tokens' validity for the kind defined
 func (public Public) Authenticate() (bool, error) {
+	log := logger.New()
+
 	kindSplit := strings.SplitN(public.kind, "/", 2)
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
@@ -89,6 +97,9 @@ func (public Public) Authenticate() (bool, error) {
 		// returns Membership, Response, error
 		_, _, err := public.api.Organizations.GetOrgMembership(public.ctx, accountID, kindKey)
 		if err != nil {
+			log.WithFields(logrus.Fields{
+				"organization": kindKey,
+			}).Errorf("Organization membership check failed")
 			return false, err
 		}
 		return true, nil
@@ -97,20 +108,27 @@ func (public Public) Authenticate() (bool, error) {
 		// return true if the authenticated user from env variables is the same user mentioned in config
 		user, _, err := public.api.Users.Get(context.Background(), "")
 		if err != nil {
-			fmt.Println("USER AUTH: ", err.Error())
 			return false, err
 		} else if kindKey != *user.Login {
-			return false, fmt.Errorf("Kind username does not match account ID. Unable to push to this target")
+			log.WithFields(logrus.Fields{
+				"user": kindKey,
+			}).Errorf("Kind username does not match account ID")
+			return false, fmt.Errorf("Unable to push to target user")
 		}
 		return true, nil
 
 	default:
 		// Mentioned kind is unsupported
-		return false, fmt.Errorf("Unsupported kind: %v", kindType)
+		log.WithFields(logrus.Fields{
+			"kind": kindType,
+		}).Errorf("Unsupported kind")
+		return false, fmt.Errorf("Unsupported kind")
 	}
 }
 
 func (public Public) makeNewRepo(repo common.Repository) (string, error) {
+	log := logger.New()
+
 	kindSplit := strings.SplitN(public.kind, "/", 2)
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
@@ -131,8 +149,10 @@ func (public Public) makeNewRepo(repo common.Repository) (string, error) {
 		newRepo, _, err = public.api.Repositories.Create(context.Background(), "", &newRepository)
 	}
 	if err != nil {
-		logger.New().Errorf("Failed to make new repository: %v", repo.Slug)
-		return "", fmt.Errorf("Failed to make new repository: %v", repo.Slug)
+		log.WithFields(logrus.Fields{
+			"repository": repo.Slug,
+		}).Errorf("Repository creation failed")
+		return "", fmt.Errorf("Repository creation failed")
 	}
 
 	newRepoBytes, _ := json.MarshalIndent(newRepo, "", "  ")
@@ -144,6 +164,8 @@ func (public Public) makeNewRepo(repo common.Repository) (string, error) {
 // SyncCheck checks whether the repository is already present at the target
 // If it is, then only a sync is done, else a new repository is created at the target
 func (public Public) SyncCheck(repos []common.Repository) []common.Repository {
+	log := logger.New()
+
 	kindSplit := strings.SplitN(public.kind, "/", 2)
 	// kindType := kindSplit[0]
 	kindKey := kindSplit[1]
@@ -155,10 +177,14 @@ func (public Public) SyncCheck(repos []common.Repository) []common.Repository {
 		targetRepo, _, err := public.api.Repositories.Get(context.Background(), kindKey, repo.Slug)
 
 		if err != nil {
-			logger.New().Infof("%v - Repository not found", repo.Slug)
+			log.WithFields(logrus.Fields{
+				"repository": repo.Slug,
+			}).Infof("Repository not found")
 			targetURL, err := public.makeNewRepo(repo)
 			if err != nil {
-				logger.New().Warningf("Skipping repository: %v", repo.Slug)
+				log.WithFields(logrus.Fields{
+					"repository": repo.Slug,
+				}).Warningf("Skipping repository")
 				continue
 			} else {
 				repo.Target = targetURL

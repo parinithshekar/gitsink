@@ -9,6 +9,7 @@ import (
 	"time"
 
 	gjson "github.com/tidwall/gjson"
+	logrus "github.com/sirupsen/logrus"
 	// bitbucketv1 "github.com/gfleury/go-bitbucket-v1"
 
 	common "github.com/parinithshekar/gitsink/common"
@@ -46,21 +47,26 @@ func (server *Server) setAPIClient(baseURL string) {
 }
 
 // New returns a new bitbucket-server object with metadata
-func New(source config.Source) *Server {
+func New(source config.Source) (*Server, error) {
 	var server *Server = new(Server)
+	log := logger.New()
 
 	_, exists := os.LookupEnv(source.AccountID)
 	if !exists {
-		logger.New().Errorf("Account ID not found")
-		os.Exit(1)
+		log.WithFields(logrus.Fields{
+			"accountID": source.AccountID,
+		}).Errorf("Account ID not found")
+		return nil, fmt.Errorf("Account ID not found")
 	} else {
 		server.accountID = source.AccountID
 	}
 
 	_, exists = os.LookupEnv(source.AccessToken)
 	if !exists {
-		logger.New().Errorf("Access Token not found")
-		os.Exit(1)
+		log.WithFields(logrus.Fields{
+			"accessToken": source.AccessToken,
+		}).Errorf("Access Token not found")
+		return nil, fmt.Errorf("Access Token not found")
 	} else {
 		server.accessToken = source.AccessToken
 	}
@@ -69,11 +75,13 @@ func New(source config.Source) *Server {
 
 	server.setAPIClient(source.BaseURL)
 
-	return server
+	return server, nil
 }
 
 // Authenticate checks the account ID and access tokens' validity for the kind defined
 func (server *Server) Authenticate() (bool, error) {
+	log := logger.New()
+
 	kindSplit := strings.Split(server.kind, "/")
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
@@ -88,7 +96,9 @@ func (server *Server) Authenticate() (bool, error) {
 		// Check if user can access repos of the project mentioned (kindKey) in config
 		_, err = server.api.Do(request)
 		if err != nil {
-			fmt.Printf("Authenticate Project: %v\n", err.Error())
+			log.WithFields(logrus.Fields{
+				"project": kindKey,
+			}).Errorf("Project not found. Check user access")
 			return false, err
 		}
 		return true, nil
@@ -100,14 +110,19 @@ func (server *Server) Authenticate() (bool, error) {
 		// Check if user can access repos of the user mentioned (kindKey) in config
 		_, err = server.api.Do(request)
 		if err != nil {
-			fmt.Printf("Authenticate User: %v\n", err.Error())
+			log.WithFields(logrus.Fields{
+				"user": kindKey,
+			}).Errorf("User authentication failed")
 			return false, err
 		}
 		return true, nil
 
 	default:
 		// Mentioned kind is unsupported
-		return false, fmt.Errorf("Unsupported kind: %v", kindType)
+		log.WithFields(logrus.Fields{
+			"kind": kindType,
+		}).Errorf("Unsupported kind")
+		return false, fmt.Errorf("Unsupported kind")
 	}
 }
 
@@ -160,6 +175,8 @@ func (server *Server) allRepositories(URL, accountID, accessToken string) ([]com
 func (server *Server) Repositories(metadata bool) ([]common.Repository, error) {
 	// The bitbucketv1 API client does not abstract over pagination
 	// Might as well write this from scratch using HTTP calls
+	log := logger.New()
+
 	kindSplit := strings.Split(server.kind, "/")
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
@@ -173,7 +190,9 @@ func (server *Server) Repositories(metadata bool) ([]common.Repository, error) {
 		// abstract over pagination
 		repositories, err := server.allRepositories(reposURL, accountID, accessToken)
 		if err != nil {
-			fmt.Printf("Get Repositories: %v\n", err.Error())
+			log.WithFields(logrus.Fields{
+				"project": kindKey,
+			}).Errorf("Failed to get project repositories")
 			return nil, err
 		}
 		return repositories, nil
@@ -183,12 +202,17 @@ func (server *Server) Repositories(metadata bool) ([]common.Repository, error) {
 		// abstract over pagination
 		repositories, err := server.allRepositories(reposURL, accountID, accessToken)
 		if err != nil {
-			fmt.Printf("Get Repositories: %v\n", err.Error())
+			log.WithFields(logrus.Fields{
+				"user": kindKey,
+			}).Errorf("Failed to get user repositories")
 			return nil, err
 		}
 		return repositories, nil
 
 	default:
-		return nil, fmt.Errorf("Unsupported kind: %v", kindType)
+		log.WithFields(logrus.Fields{
+			"kind": kindType,
+		}).Errorf("Unsupported kind")
+		return nil, fmt.Errorf("Unsupported kind")
 	}
 }
