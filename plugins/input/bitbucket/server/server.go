@@ -8,14 +8,22 @@ import (
 	"strings"
 	"time"
 
-	gjson "github.com/tidwall/gjson"
 	logrus "github.com/sirupsen/logrus"
-	// bitbucketv1 "github.com/gfleury/go-bitbucket-v1"
+	gjson "github.com/tidwall/gjson"
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
 )
+
+var (
+	log = logger.New()
+)
+
+// APIClient defines the methods for the API in Server object
+type APIClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
 
 // Server struct defines the data fields in bitbucket-server object
 type Server struct {
@@ -24,15 +32,31 @@ type Server struct {
 	accountID   string
 	accessToken string
 	kind        string
-	api         *http.Client
+	API         APIClient
 }
 
 // Credentials fetches amd returns the accountID and accessToken from environment variables
-func (server *Server) Credentials() (string, string) {
+func (server *Server) Credentials() (string, string, error) {
 	accountID := os.Getenv(server.accountID)
 	accessToken := os.Getenv(server.accessToken)
 
-	return accountID, accessToken
+	accountID, exists := os.LookupEnv(server.accountID)
+	if !exists {
+		log.WithFields(logrus.Fields{
+			"accountID": server.accountID,
+		}).Errorf("Account ID not found")
+		return "", "", fmt.Errorf("Account ID not found")
+	}
+
+	accessToken, exists = os.LookupEnv(server.accessToken)
+	if !exists {
+		log.WithFields(logrus.Fields{
+			"accessToken": server.accessToken,
+		}).Errorf("Access Token not found")
+		return "", "", fmt.Errorf("Access Token not found")
+	}
+
+	return accountID, accessToken, nil
 }
 
 // setAPIClient builds and returns an object to facilitate calls to the API
@@ -43,13 +67,12 @@ func (server *Server) setAPIClient(baseURL string) {
 	}
 
 	server.apiBaseURL = baseURL + "/bitbucket/rest/api/1.0"
-	server.api = client
+	server.API = client
 }
 
 // New returns a new bitbucket-server object with metadata
 func New(source config.Source) (*Server, error) {
 	var server *Server = new(Server)
-	log := logger.New()
 
 	_, exists := os.LookupEnv(source.AccountID)
 	if !exists {
@@ -57,9 +80,8 @@ func New(source config.Source) (*Server, error) {
 			"accountID": source.AccountID,
 		}).Errorf("Account ID not found")
 		return nil, fmt.Errorf("Account ID not found")
-	} else {
-		server.accountID = source.AccountID
 	}
+	server.accountID = source.AccountID
 
 	_, exists = os.LookupEnv(source.AccessToken)
 	if !exists {
@@ -67,9 +89,8 @@ func New(source config.Source) (*Server, error) {
 			"accessToken": source.AccessToken,
 		}).Errorf("Access Token not found")
 		return nil, fmt.Errorf("Access Token not found")
-	} else {
-		server.accessToken = source.AccessToken
 	}
+	server.accessToken = source.AccessToken
 
 	server.kind = source.Kind
 
@@ -80,13 +101,19 @@ func New(source config.Source) (*Server, error) {
 
 // Authenticate checks the account ID and access tokens' validity for the kind defined
 func (server *Server) Authenticate() (bool, error) {
-	log := logger.New()
 
 	kindSplit := strings.Split(server.kind, "/")
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
 
-	accountID, accessToken := server.Credentials()
+	accountID, accessToken, err := server.Credentials()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"accountID":   server.accountID,
+			"accessToken": server.accessToken,
+		}).Errorf("Failed to fetch credentials")
+		return false, err
+	}
 
 	switch kindType {
 	case "project":
@@ -94,7 +121,7 @@ func (server *Server) Authenticate() (bool, error) {
 		request.SetBasicAuth(accountID, accessToken)
 
 		// Check if user can access repos of the project mentioned (kindKey) in config
-		_, err = server.api.Do(request)
+		_, err = server.API.Do(request)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"project": kindKey,
@@ -108,7 +135,7 @@ func (server *Server) Authenticate() (bool, error) {
 		request.SetBasicAuth(accountID, accessToken)
 
 		// Check if user can access repos of the user mentioned (kindKey) in config
-		_, err = server.api.Do(request)
+		_, err = server.API.Do(request)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"user": kindKey,
@@ -138,7 +165,7 @@ func (server *Server) allRepositories(URL, accountID, accessToken string) ([]com
 		request, err := http.NewRequest("GET", pagedURL, nil)
 		request.SetBasicAuth(accountID, accessToken)
 
-		response, err := server.api.Do(request)
+		response, err := server.API.Do(request)
 		if err != nil {
 			return nil, err
 		}
@@ -173,16 +200,19 @@ func (server *Server) allRepositories(URL, accountID, accessToken string) ([]com
 
 // Repositories queries the API and returns a list of repositories mentioned by the kind
 func (server *Server) Repositories(metadata bool) ([]common.Repository, error) {
-	// The bitbucketv1 API client does not abstract over pagination
-	// Might as well write this from scratch using HTTP calls
-	log := logger.New()
 
 	kindSplit := strings.Split(server.kind, "/")
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
 
-	fmt.Println("INSIDE REPOSITORIES")
-	accountID, accessToken := server.Credentials()
+	accountID, accessToken, err := server.Credentials()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"accountID":   server.accountID,
+			"accessToken": server.accessToken,
+		}).Errorf("Failed to fetch credentials")
+		return nil, err
+	}
 
 	switch kindType {
 	case "project":

@@ -40,11 +40,11 @@ type BranchModifier struct {
 // Target has teh fields that describe a target for the sync
 type Target struct {
 	Type            string           `yaml:"type"`
-	BaseURL         string           `yaml:"base_url"`
+	BaseURL         string           `yaml:"base_url,omitempty"`
 	AccountID       string           `yaml:"account_id"`
 	AccessToken     string           `yaml:"access_token"`
 	Kind            string           `yaml:"kind"`
-	BranchModifiers []BranchModifier `yaml:"branch_modifiers"`
+	BranchModifiers []BranchModifier `yaml:"branch_modifiers,omitempty"`
 }
 
 // Integration defines one integration with all information for sync

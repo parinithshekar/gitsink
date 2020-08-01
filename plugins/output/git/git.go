@@ -9,6 +9,11 @@ import (
 
 	common "github.com/parinithshekar/gitsink/common"
 	plugins "github.com/parinithshekar/gitsink/plugins/interfaces"
+	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
+)
+
+var (
+	log = logger.New()
 )
 
 // Client struct has the output plugin associated with the integration
@@ -46,13 +51,18 @@ func (gitClient Client) SyncRepos(repos []common.Repository) {
 	}
 	os.Chdir(gitClient.integrationName)
 
+	// Get authenticated link for cloning repo
+	sourceAccountID, sourceAccessToken, err := gitClient.input.Credentials()
+	if err != nil {
+		log.Errorf("Failed to fetch source credentials")
+		return
+	}
+
 	for _, repo := range repos {
 
 		var localRepo *git.Repository
 		if _, err := os.Stat(repo.Slug); os.IsNotExist(err) {
 
-			// Get authenticated link for cloning repo
-			sourceAccountID, sourceAccessToken := gitClient.input.Credentials()
 			sourceLinkDomain := strings.SplitN(repo.Source, "//", 2)[1]
 			authSourceLink := fmt.Sprintf("https://%v:%v@%v", sourceAccountID, sourceAccessToken, sourceLinkDomain)
 
@@ -78,13 +88,21 @@ func (gitClient Client) SyncTags(repo common.Repository, localRepo *git.Reposito
 	// Sync Tags individually
 
 	// Get authenticated link for fetching
-	sourceAccountID, sourceAccessToken := gitClient.input.Credentials()
+	sourceAccountID, sourceAccessToken, err := gitClient.input.Credentials()
+	if err != nil {
+		log.Errorf("Failed to fetch source credentials")
+		return
+	}
 	sourceLinkDomain := strings.SplitN(repo.Source, "//", 2)[1]
 	authSourceLink := fmt.Sprintf("https://%v:%v@%v", sourceAccountID, sourceAccessToken, sourceLinkDomain)
 	authSourceLink = string(authSourceLink)
 
 	// Get authenticated link for pushing
-	targetAccountID, targetAccessToken := gitClient.output.Credentials()
+	targetAccountID, targetAccessToken, err := gitClient.output.Credentials()
+	if err != nil {
+		log.Errorf("Failed to fetch target credentials")
+		return
+	}
 	targetLinkDomain := strings.SplitN(repo.Target, "//", 2)[1]
 	authTargetLink := fmt.Sprintf("https://%v:%v@%v", targetAccountID, targetAccessToken, targetLinkDomain)
 	authTargetLink = string(authTargetLink)
@@ -98,13 +116,21 @@ func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repo
 	// Sync Branches individually
 
 	// Get authenticated link for fetching
-	sourceAccountID, sourceAccessToken := gitClient.input.Credentials()
+	sourceAccountID, sourceAccessToken, err := gitClient.input.Credentials()
+	if err != nil {
+		log.Errorf("Failed to fetch source credentials")
+		return
+	}
 	sourceLinkDomain := strings.SplitN(repo.Source, "//", 2)[1]
 	authSourceLink := fmt.Sprintf("https://%v:%v@%v", sourceAccountID, sourceAccessToken, sourceLinkDomain)
 	authSourceLink = string(authSourceLink)
 
 	// Get authenticated link for pushing
-	targetAccountID, targetAccessToken := gitClient.output.Credentials()
+	targetAccountID, targetAccessToken, err := gitClient.output.Credentials()
+	if err != nil {
+		log.Errorf("Failed to fetch target credentials")
+		return
+	}
 	targetLinkDomain := strings.SplitN(repo.Target, "//", 2)[1]
 	authTargetLink := fmt.Sprintf("https://%v:%v@%v", targetAccountID, targetAccessToken, targetLinkDomain)
 	authTargetLink = string(authTargetLink)
