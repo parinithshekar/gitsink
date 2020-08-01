@@ -17,6 +17,10 @@ import (
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
 )
 
+var (
+	log = logger.New()
+)
+
 // Public struct defines fields in github-public object
 type Public struct {
 	accountID   string
@@ -42,16 +46,32 @@ func (public *Public) setAPIClient() {
 }
 
 // Credentials fetches amd returns the accountID and accessToken from environment variables
-func (public Public) Credentials() (string, string) {
+func (public Public) Credentials() (string, string, error) {
 	accountID := os.Getenv(public.accountID)
 	accessToken := os.Getenv(public.accessToken)
-	return accountID, accessToken
+
+	accountID, exists := os.LookupEnv(public.accountID)
+	if !exists {
+		log.WithFields(logrus.Fields{
+			"accountID": public.accountID,
+		}).Errorf("Account ID not found")
+		return "", "", fmt.Errorf("Account ID not found")
+	}
+
+	accessToken, exists = os.LookupEnv(public.accessToken)
+	if !exists {
+		log.WithFields(logrus.Fields{
+			"accessToken": public.accessToken,
+		}).Errorf("Access Token not found")
+		return "", "", fmt.Errorf("Access Token not found")
+	}
+
+	return accountID, accessToken, nil
 }
 
 // New returns a new github-public object
 func New(target config.Target) (*Public, error) {
 	var public *Public = new(Public)
-	log := logger.New()
 
 	// Check if env variables mentioned in config file exist
 	// check account ID env variable
@@ -61,9 +81,8 @@ func New(target config.Target) (*Public, error) {
 			"accountID": target.AccountID,
 		}).Errorf("Account ID not found")
 		return nil, fmt.Errorf("Account ID not found")
-	} else {
-		public.accountID = target.AccountID
 	}
+	public.accountID = target.AccountID
 	// check access token env variable
 	_, exists = os.LookupEnv(target.AccessToken)
 	if !exists {
@@ -71,9 +90,8 @@ func New(target config.Target) (*Public, error) {
 			"accessToken": target.AccessToken,
 		}).Errorf("Access Token not found")
 		return nil, fmt.Errorf("Access Token not found")
-	} else {
-		public.accessToken = target.AccessToken
 	}
+	public.accessToken = target.AccessToken
 
 	public.kind = target.Kind
 
@@ -83,7 +101,6 @@ func New(target config.Target) (*Public, error) {
 
 // Authenticate checks the account ID and access tokens' validity for the kind defined
 func (public Public) Authenticate() (bool, error) {
-	log := logger.New()
 
 	kindSplit := strings.SplitN(public.kind, "/", 2)
 	kindType := kindSplit[0]
@@ -127,7 +144,6 @@ func (public Public) Authenticate() (bool, error) {
 }
 
 func (public Public) makeNewRepo(repo common.Repository) (string, error) {
-	log := logger.New()
 
 	kindSplit := strings.SplitN(public.kind, "/", 2)
 	kindType := kindSplit[0]
@@ -164,7 +180,6 @@ func (public Public) makeNewRepo(repo common.Repository) (string, error) {
 // SyncCheck checks whether the repository is already present at the target
 // If it is, then only a sync is done, else a new repository is created at the target
 func (public Public) SyncCheck(repos []common.Repository) []common.Repository {
-	log := logger.New()
 
 	kindSplit := strings.SplitN(public.kind, "/", 2)
 	// kindType := kindSplit[0]

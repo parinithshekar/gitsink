@@ -1,18 +1,22 @@
 package cloud
 
 import (
-	"os"
-	"fmt"
-	"strings"
 	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
 
-	gjson "github.com/tidwall/gjson"
-	logrus "github.com/sirupsen/logrus"
 	bitbucket "github.com/ktrysmt/go-bitbucket"
+	logrus "github.com/sirupsen/logrus"
+	gjson "github.com/tidwall/gjson"
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
+)
+
+var (
+	log = logger.New()
 )
 
 // Cloud struct defines data fields in bitbucket-cloud object
@@ -20,29 +24,45 @@ type Cloud struct {
 	accountID   string
 	accessToken string
 	kind        string
-	api         *bitbucket.Client
+	API         *bitbucket.Client
 }
 
 // setAPIClient builds and returns an object to facilitate calls to the API
 func (cloud *Cloud) setAPIClient() {
-	accountID := os.Getenv(cloud.accountID)
-	accessToken := os.Getenv(cloud.accessToken)
+
+	accountID, accessToken, _ := cloud.Credentials()
 
 	client := bitbucket.NewBasicAuth(accountID, accessToken)
-	cloud.api = client
+	cloud.API = client
 }
 
 // Credentials fetches amd returns the accountID and accessToken from environment variables
-func (cloud Cloud) Credentials() (string, string) {
+func (cloud Cloud) Credentials() (string, string, error) {
 	accountID := os.Getenv(cloud.accountID)
 	accessToken := os.Getenv(cloud.accessToken)
-	return accountID, accessToken
+
+	accountID, exists := os.LookupEnv(cloud.accountID)
+	if !exists {
+		log.WithFields(logrus.Fields{
+			"accountID": cloud.accountID,
+		}).Errorf("Account ID not found")
+		return "", "", fmt.Errorf("Account ID not found")
+	}
+
+	accessToken, exists = os.LookupEnv(cloud.accessToken)
+	if !exists {
+		log.WithFields(logrus.Fields{
+			"accessToken": cloud.accessToken,
+		}).Errorf("Access Token not found")
+		return "", "", fmt.Errorf("Access Token not found")
+	}
+
+	return accountID, accessToken, nil
 }
 
 // New returns a new bitbucket-cloud object
 func New(source config.Source) (*Cloud, error) {
 	var cloud *Cloud = new(Cloud)
-	log := logger.New()
 
 	_, exists := os.LookupEnv(source.AccountID)
 	if !exists {
@@ -50,9 +70,8 @@ func New(source config.Source) (*Cloud, error) {
 			"accountID": source.AccountID,
 		}).Errorf("Account ID not found")
 		return nil, fmt.Errorf("Account ID not found")
-	} else {
-		cloud.accountID = source.AccountID
 	}
+	cloud.accountID = source.AccountID
 
 	_, exists = os.LookupEnv(source.AccessToken)
 	if !exists {
@@ -60,9 +79,8 @@ func New(source config.Source) (*Cloud, error) {
 			"accessToken": source.AccessToken,
 		}).Errorf("Access Token not found")
 		return nil, fmt.Errorf("Access Token not found")
-	} else {
-		cloud.accessToken = source.AccessToken
 	}
+	cloud.accessToken = source.AccessToken
 
 	cloud.kind = source.Kind
 
@@ -72,13 +90,16 @@ func New(source config.Source) (*Cloud, error) {
 
 // Authenticate checks the account ID and access tokens' validity for the kind defined
 func (cloud Cloud) Authenticate() (bool, error) {
-	log := logger.New()
 
 	kindSplit := strings.SplitN(cloud.kind, "/", 2)
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
 
-	accountID := os.Getenv(cloud.accountID)
+	accountID, _, err := cloud.Credentials()
+	if err != nil {
+		log.Errorf("Failed to authenticate")
+		return false, err
+	}
 
 	switch kindType {
 	case "project":
@@ -88,7 +109,7 @@ func (cloud Cloud) Authenticate() (bool, error) {
 		*/
 
 		// Get list of projects user has access to
-		result, err := cloud.api.Teams.Projects(accountID)
+		result, err := cloud.API.Teams.Projects(accountID)
 		if err != nil {
 			log.Errorf("Failed to get projects")
 			return false, err
@@ -110,7 +131,7 @@ func (cloud Cloud) Authenticate() (bool, error) {
 
 	case "user":
 		// Check if current user can access the repos of the user mentioned (kindKey) in config
-		_, err := cloud.api.Teams.Repositories(kindKey)
+		_, err := cloud.API.Teams.Repositories(kindKey)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"user": kindKey,
@@ -130,18 +151,21 @@ func (cloud Cloud) Authenticate() (bool, error) {
 
 // Repositories queries the API and returns a list of repositories mentioned by the kind
 func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
-	log := logger.New()
 
 	kindSplit := strings.SplitN(cloud.kind, "/", 2)
 	kindType := kindSplit[0]
 	kindKey := kindSplit[1]
 
-	accountID := os.Getenv(cloud.accountID)
+	accountID, _, err := cloud.Credentials()
+	if err != nil {
+		log.Errorf("Failed to get repositories")
+		return nil, err
+	}
 
 	switch kindType {
 	case "project":
 		ro := bitbucket.RepositoriesOptions{Owner: accountID, Role: "member"}
-		result, err := cloud.api.Repositories.ListForAccount(&ro)
+		result, err := cloud.API.Repositories.ListForAccount(&ro)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"project": kindKey,
@@ -173,7 +197,7 @@ func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
 
 	case "user":
 		ro := bitbucket.RepositoriesOptions{Owner: kindKey, Role: "member"}
-		result, err := cloud.api.Repositories.ListForAccount(&ro)
+		result, err := cloud.API.Repositories.ListForAccount(&ro)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"user": kindKey,

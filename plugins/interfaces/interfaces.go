@@ -8,12 +8,12 @@ import (
 type Input interface {
 	Authenticate() (bool, error)
 	Repositories(bool) ([]common.Repository, error)
-	Credentials() (string, string)
+	Credentials() (string, string, error)
 }
 
 // Output lists the methods that on output plugin must implement
 type Output interface {
 	Authenticate() (bool, error)
 	SyncCheck([]common.Repository) []common.Repository
-	Credentials() (string, string)
+	Credentials() (string, string, error)
 }
