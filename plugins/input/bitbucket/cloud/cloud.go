@@ -12,6 +12,7 @@ import (
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
+	utils "github.com/parinithshekar/gitsink/common/utils"
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
 )
 
@@ -35,7 +36,11 @@ type Cloud struct {
 	accountID   string
 	accessToken string
 	kind        string
-	API         struct {
+	filters     struct {
+		include []string
+		exclude []string
+	}
+	API struct {
 		Teams        Teams
 		Repositories Repositories
 	}
@@ -98,6 +103,9 @@ func New(source config.Source) (*Cloud, error) {
 	cloud.accessToken = source.AccessToken
 
 	cloud.kind = source.Kind
+
+	cloud.filters.include = source.Repositories.Include
+	cloud.filters.exclude = source.Repositories.Exclude
 
 	cloud.setAPIClient()
 	return cloud, nil
@@ -208,6 +216,7 @@ func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
 				repositories = append(repositories, newRepo)
 			}
 		}
+		repositories = utils.FilterRepos(repositories, cloud.filters.include, cloud.filters.exclude)
 		return repositories, nil
 
 	case "user":
@@ -236,6 +245,7 @@ func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
 			}
 			repositories = append(repositories, newRepo)
 		}
+		repositories = utils.FilterRepos(repositories, cloud.filters.include, cloud.filters.exclude)
 		return repositories, nil
 
 	default:

@@ -13,6 +13,7 @@ import (
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
+	utils "github.com/parinithshekar/gitsink/common/utils"
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
 )
 
@@ -27,12 +28,15 @@ type APIClient interface {
 
 // Server struct defines the data fields in bitbucket-server object
 type Server struct {
-	apiBaseURL string
-
+	apiBaseURL  string
 	accountID   string
 	accessToken string
 	kind        string
-	API         APIClient
+	filters     struct {
+		include []string
+		exclude []string
+	}
+	API APIClient
 }
 
 // Credentials fetches amd returns the accountID and accessToken from environment variables
@@ -93,6 +97,9 @@ func New(source config.Source) (*Server, error) {
 	server.accessToken = source.AccessToken
 
 	server.kind = source.Kind
+
+	server.filters.include = source.Repositories.Include
+	server.filters.exclude = source.Repositories.Exclude
 
 	server.setAPIClient(source.BaseURL)
 
@@ -225,6 +232,7 @@ func (server *Server) Repositories(metadata bool) ([]common.Repository, error) {
 			}).Errorf("Failed to get project repositories")
 			return nil, err
 		}
+		repositories = utils.FilterRepos(repositories, server.filters.include, server.filters.exclude)
 		return repositories, nil
 
 	case "user":
@@ -237,6 +245,7 @@ func (server *Server) Repositories(metadata bool) ([]common.Repository, error) {
 			}).Errorf("Failed to get user repositories")
 			return nil, err
 		}
+		repositories = utils.FilterRepos(repositories, server.filters.include, server.filters.exclude)
 		return repositories, nil
 
 	default:
