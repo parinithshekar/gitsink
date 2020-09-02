@@ -20,8 +20,8 @@ var (
 		AccessToken: envAccessToken,
 		Kind:        "user/username",
 		Repositories: config.Repositories{
-			Include: []string{".*-suffix"},
-			Exclude: []string{"prefix-.*"},
+			Include: []string{"/.*/"},
+			Exclude: []string{"/^hello$/"},
 		},
 	}
 )

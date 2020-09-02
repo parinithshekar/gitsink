@@ -21,8 +21,8 @@ var (
 		AccessToken: envAccessToken,
 		Kind:        "user/username",
 		Repositories: config.Repositories{
-			Include: []string{".*-suffix"},
-			Exclude: []string{"prefix-.*"},
+			Include: []string{"/.*/"},
+			Exclude: []string{"/^hello$/"},
 		},
 	}
 )
@@ -254,6 +254,7 @@ func TestRepositories(t *testing.T) {
 			// Validate
 			resultOK := (actualResult == tc.ExpectedResult)
 			errorOK := (actualError == tc.ExpectedError)
+
 			if !(resultOK && errorOK) {
 				t.Error("Repositories() test failed")
 			}
