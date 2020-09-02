@@ -47,7 +47,7 @@ workflows:
               only: /.*/
       - publish-docker-image:
           requires:
-            - build
+            - build-test
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+$/
