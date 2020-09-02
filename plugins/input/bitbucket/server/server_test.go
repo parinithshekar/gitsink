@@ -255,7 +255,7 @@ func TestRepositories(t *testing.T) {
 			resultOK := (actualResult == tc.ExpectedResult)
 			errorOK := (actualError == tc.ExpectedError)
 			if !(resultOK && errorOK) {
-				t.Error("Authentication test failed")
+				t.Error("Repositories() test failed")
 			}
 		})
 	}

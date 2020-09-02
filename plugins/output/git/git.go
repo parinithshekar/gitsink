@@ -1,14 +1,15 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	logrus "github.com/sirupsen/logrus"
 	git "github.com/go-git/go-git/v5"
 	config "github.com/go-git/go-git/v5/config"
 	http "github.com/go-git/go-git/v5/plumbing/transport/http"
+	logrus "github.com/sirupsen/logrus"
 
 	common "github.com/parinithshekar/gitsink/common"
 	plugins "github.com/parinithshekar/gitsink/plugins/interfaces"
@@ -71,28 +72,71 @@ func (gitClient Client) SyncRepos(repos []common.Repository) {
 		if _, err := os.Stat(repo.Slug); os.IsNotExist(err) {
 			// Clone the repo
 			co := git.CloneOptions{
-				URL: repo.Source,
+				URL:  repo.Source,
 				Auth: &sourceAuth,
 			}
 			co.Validate()
 			localRepo, _ = git.PlainClone(repo.Slug, false, &co)
+		} else {
+			localRepo, err = git.PlainOpen(repo.Slug)
 		}
 
-		_, err := localRepo.CreateRemote(&config.RemoteConfig{
+		_, err = localRepo.CreateRemote(&config.RemoteConfig{
 			Name: "target",
 			URLs: []string{repo.Target},
 		})
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"integration": gitClient.integrationName,
-				"repository": repo.Slug,
-				"error": err.Error(),
+				"repository":  repo.Slug,
+				"error":       err.Error(),
 			}).Errorf("Failed to set target remote")
 		}
 
-		// TODO: yet to handle and report errors in logs
-		gitClient.SyncTags(repo, localRepo)
-		gitClient.SyncBranches(repo, localRepo)
+		failedTags, err := gitClient.SyncTags(repo, localRepo)
+		if err != nil {
+			if failedTags != nil {
+				log.WithFields(logrus.Fields{
+					"integration": gitClient.integrationName,
+					"repository":  repo.Slug,
+					"failedTags":  failedTags,
+					"error":       err.Error(),
+				}).Warningf("Some tags not synced")
+			} else {
+				log.WithFields(logrus.Fields{
+					"integration": gitClient.integrationName,
+					"repository":  repo.Slug,
+					"error":       err.Error(),
+				}).Warningf("Failed to sync tags")
+			}
+		}
+
+		failedBranches, err := gitClient.SyncBranches(repo, localRepo)
+		if err != nil {
+			if failedBranches != nil {
+				log.WithFields(logrus.Fields{
+					"integration":    gitClient.integrationName,
+					"repository":     repo.Slug,
+					"failedBranches": failedBranches,
+					"error":          err.Error(),
+				}).Warningf("Some branches not synced")
+			} else {
+				log.WithFields(logrus.Fields{
+					"integration": gitClient.integrationName,
+					"repository":  repo.Slug,
+					"error":       err.Error(),
+				}).Warningf("Failed to sync branches")
+			}
+		}
+
+		err = localRepo.DeleteRemote("target")
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"integration": gitClient.integrationName,
+				"repository":  repo.Slug,
+				"error":       err.Error(),
+			}).Warningf("Failed to remove old remote")
+		}
 	}
 
 	// back to project root
@@ -100,17 +144,18 @@ func (gitClient Client) SyncRepos(repos []common.Repository) {
 }
 
 // SyncTags individually syncs the tags from source remote to the target remote
-func (gitClient Client) SyncTags(repo common.Repository, localRepo *git.Repository) {
+func (gitClient Client) SyncTags(repo common.Repository, localRepo *git.Repository) ([]string, error) {
 
+	var failedTags []string
 	// Get authentication object for source
 	sourceAccountID, sourceAccessToken, err := gitClient.input.Credentials()
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"integration": gitClient.integrationName,
-			"repository": repo.Slug,
-			"error": err.Error(),
+			"repository":  repo.Slug,
+			"error":       err.Error(),
 		}).Errorf("Failed to fetch source credentials")
-		return
+		return nil, errors.New("Failed to sync tags")
 	}
 	sourceAuth := http.BasicAuth{
 		Username: sourceAccountID,
@@ -122,10 +167,10 @@ func (gitClient Client) SyncTags(repo common.Repository, localRepo *git.Reposito
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"integration": gitClient.integrationName,
-			"repository": repo.Slug,
-			"error": err.Error(),
+			"repository":  repo.Slug,
+			"error":       err.Error(),
 		}).Errorf("Failed to fetch target credentials")
-		return
+		return nil, errors.New("Failed to sync tags")
 	}
 	targetAuth := http.BasicAuth{
 		Username: targetAccountID,
@@ -135,21 +180,21 @@ func (gitClient Client) SyncTags(repo common.Repository, localRepo *git.Reposito
 	// Fetch from origin
 	fo := git.FetchOptions{
 		RemoteName: "origin",
-		Auth: &sourceAuth,
+		Auth:       &sourceAuth,
 	}
 	fo.Validate()
 	err = localRepo.Fetch(&fo)
 
 	remotes, _ := localRepo.Remotes()
-	for _, remote := range(remotes) {
+	for _, remote := range remotes {
 		fmt.Println("\n", remote.String())
 	}
 
 	if err != nil && err.Error() != "already up-to-date" {
 		log.WithFields(logrus.Fields{
 			"integration": gitClient.integrationName,
-			"repository": repo.Slug,
-			"error": err.Error(),
+			"repository":  repo.Slug,
+			"error":       err.Error(),
 		}).Warningf("Failed to get remote refs")
 	}
 
@@ -161,69 +206,86 @@ func (gitClient Client) SyncTags(repo common.Repository, localRepo *git.Reposito
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"integration": gitClient.integrationName,
-			"repository": repo.Slug,
-			"error": err.Error(),
+			"repository":  repo.Slug,
+			"error":       err.Error(),
 		}).Warningf("Failed to fetch tags from origin")
+		return nil, errors.New("Failed to sync tags")
 	}
 
 	// Parse list of tag names
 	var tags []string
-	for _, ref := range(refs) {
-		if (ref.Name().IsTag()) {
+	for _, ref := range refs {
+		if ref.Name().IsTag() {
 			tags = append(tags, strings.SplitN(ref.Name().String(), "refs/tags/", 2)[1])
 		}
 	}
 
 	// Sync tags
-	for _, tag := range(tags) {
-		
+	for _, tag := range tags {
+
 		// Build refspec
 		tagRefspec := fmt.Sprintf("refs/tags/%v:refs/tags/%v", tag, tag)
 
 		// Push tag to target remote
 		po := git.PushOptions{
 			RemoteName: "target",
-			Auth: &targetAuth,
-			RefSpecs: []config.RefSpec{ config.RefSpec(tagRefspec) },
+			Auth:       &targetAuth,
+			RefSpecs:   []config.RefSpec{config.RefSpec(tagRefspec)},
 		}
 		po.Validate()
 		err = localRepo.Push(&po)
 
 		// Report errors if any
 		if (err != nil) && (err.Error() != "already up-to-date") {
+			failedTags = append(failedTags, tag)
 			log.WithFields(logrus.Fields{
 				"integration": gitClient.integrationName,
-				"repository": repo.Slug,
-				"tag": tag,
-				"error": err.Error(),
+				"repository":  repo.Slug,
+				"tag":         tag,
+				"error":       err.Error(),
 			}).Errorf("Tag could not be synced")
 		}
 
 	}
+
+	if len(failedTags) > 0 {
+		return failedTags, errors.New("Some tags not synced")
+	}
+	return nil, nil
 }
 
 func reorderDefault(branches []string, keyBranch string) []string {
 	if len(branches) == 0 || branches[0] == keyBranch {
-        return branches
-    } 
-    if branches[len(branches)-1] == keyBranch {
-        branches = append([]string{keyBranch}, branches[:len(branches)-1]...)
-        return branches
-    } 
-    for i, branch := range branches {
-        if branch == keyBranch {
-            branches = append([]string{keyBranch}, append(branches[:i], branches[i+1:]...)...)
-            break
-        }
-    }
-    return branches
+		return branches
+	}
+	if branches[len(branches)-1] == keyBranch {
+		branches = append([]string{keyBranch}, branches[:len(branches)-1]...)
+		return branches
+	}
+	for i, branch := range branches {
+		if branch == keyBranch {
+			branches = append([]string{keyBranch}, append(branches[:i], branches[i+1:]...)...)
+			break
+		}
+	}
+	return branches
 }
 
 // SyncBranches individually syncs the branches from source remote to the target remote
-func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repository) {
-	
+func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repository) ([]string, error) {
+
+	var failedBranches []string
+
 	// Get authentication object for source
 	sourceAccountID, sourceAccessToken, err := gitClient.input.Credentials()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"integration": gitClient.integrationName,
+			"repository":  repo.Slug,
+			"error":       err.Error(),
+		}).Errorf("Failed to fetch source credentials")
+		return nil, errors.New("Failed to sync tags")
+	}
 	sourceAuth := http.BasicAuth{
 		Username: sourceAccountID,
 		Password: sourceAccessToken,
@@ -231,6 +293,14 @@ func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repo
 
 	// Get authentication object for target
 	targetAccountID, targetAccessToken, err := gitClient.output.Credentials()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"integration": gitClient.integrationName,
+			"repository":  repo.Slug,
+			"error":       err.Error(),
+		}).Errorf("Failed to fetch target credentials")
+		return nil, errors.New("Failed to sync tags")
+	}
 	targetAuth := http.BasicAuth{
 		Username: targetAccountID,
 		Password: targetAccessToken,
@@ -239,15 +309,15 @@ func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repo
 	// Fetch from origin
 	fo := git.FetchOptions{
 		RemoteName: "origin",
-		Auth: &sourceAuth,
+		Auth:       &sourceAuth,
 	}
 	fo.Validate()
 	err = localRepo.Fetch(&fo)
 	if err != nil && err.Error() != "already up-to-date" {
 		log.WithFields(logrus.Fields{
 			"integration": gitClient.integrationName,
-			"repository": repo.Slug,
-			"error": err.Error(),
+			"repository":  repo.Slug,
+			"error":       err.Error(),
 		}).Warningf("Failed to fetch tags from origin")
 	}
 
@@ -259,22 +329,22 @@ func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repo
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"integration": gitClient.integrationName,
-			"repository": repo.Slug,
-			"error": err.Error(),
+			"repository":  repo.Slug,
+			"error":       err.Error(),
 		}).Warningf("Failed to get remote refs")
 	}
 
 	// Parse list of branch names
 	var branches []string
-	for _, ref := range(refs) {
-		if (ref.Name().IsBranch()) {
+	for _, ref := range refs {
+		if ref.Name().IsBranch() {
 			branches = append(branches, strings.SplitN(ref.Name().String(), "refs/heads/", 2)[1])
 		}
 	}
 
 	// Reorder to push default branch from source first
 	defaultBranch := "master"
-	for _, ref := range(refs) {
+	for _, ref := range refs {
 		if ref.Strings()[0] == "HEAD" {
 			defaultBranch = strings.SplitN(ref.Strings()[1], "ref: refs/heads/", 2)[1]
 			break
@@ -283,28 +353,34 @@ func (gitClient Client) SyncBranches(repo common.Repository, localRepo *git.Repo
 	branches = reorderDefault(branches, defaultBranch)
 
 	// Sync branches
-	for _, branch := range(branches) {
-		
+	for _, branch := range branches {
+
 		// Build refspec
 		branchRefspec := fmt.Sprintf("refs/remotes/origin/%v:refs/heads/%v", branch, branch)
 
 		// Push branch to target remote
 		po := git.PushOptions{
 			RemoteName: "target",
-			Auth: &targetAuth,
-			RefSpecs: []config.RefSpec{ config.RefSpec(branchRefspec) },
+			Auth:       &targetAuth,
+			RefSpecs:   []config.RefSpec{config.RefSpec(branchRefspec)},
 		}
 		po.Validate()
 		err = localRepo.Push(&po)
 
 		// Report errors if any
 		if (err != nil) && (err.Error() != "already up-to-date") {
+			failedBranches = append(failedBranches, branch)
 			log.WithFields(logrus.Fields{
 				"integration": gitClient.integrationName,
-				"repository": repo.Slug,
-				"branch": branch,
-				"error": err.Error(),
+				"repository":  repo.Slug,
+				"branch":      branch,
+				"error":       err.Error(),
 			}).Errorf("Branch could not be synced")
 		}
 	}
+
+	if len(failedBranches) > 0 {
+		return failedBranches, errors.New("Some branches not synced")
+	}
+	return nil, nil
 }

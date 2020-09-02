@@ -1,11 +1,11 @@
 package cloud_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
 	config "github.com/parinithshekar/gitsink/common/config"
+	mock "github.com/parinithshekar/gitsink/mocks/bbcloud"
 	bbcloud "github.com/parinithshekar/gitsink/plugins/input/bitbucket/cloud"
 	plugins "github.com/parinithshekar/gitsink/plugins/interfaces"
 )
@@ -120,7 +120,7 @@ func TestCredentials(t *testing.T) {
 
 func TestAuthenticate(t *testing.T) {
 
-	// var input interface{}
+	var input plugins.Input
 	var err error
 
 	cases := map[string]struct {
@@ -134,21 +134,133 @@ func TestAuthenticate(t *testing.T) {
 	}
 
 	for tcName, tc := range cases {
-		fmt.Println(tcName, tc.ExpectedResult)
+		t.Run(tcName, func(t *testing.T) {
+			os.Setenv(envAccountID, tc.AccountID)
+			os.Setenv(envAccessToken, tc.AccessToken)
+			defer os.Unsetenv(envAccountID)
+			defer os.Unsetenv(envAccessToken)
 
-		os.Setenv(envAccountID, tc.AccountID)
-		os.Setenv(envAccessToken, tc.AccessToken)
-		defer os.Unsetenv(envAccountID)
-		defer os.Unsetenv(envAccessToken)
+			// New
+			input, err = bbcloud.New(source)
+			if err != nil {
+				t.Error("Plugin initiation failed")
+			}
 
-		// New
-		_, err = bbcloud.New(source)
-		if err != nil {
-			t.Error("Plugin initiation failed")
-		}
+			// Set mock client
+			mockInput := input.(*bbcloud.Cloud)
+			mockInput.API.Teams = &mock.Teams{AccountID: tc.AccountID, AccessToken: tc.AccessToken}
+			mockInput.API.Repositories = &mock.Repositories{AccountID: tc.AccountID, AccessToken: tc.AccessToken}
 
-		// Set mock client
-		// Authenticate
-		// Validate
+			// Call Authenticate
+			actualResult, err := mockInput.Authenticate()
+			actualError := (err != nil)
+
+			// Validate
+			resultOK := (actualResult == tc.ExpectedResult)
+			errorOK := (actualError == tc.ExpectedError)
+			if !(resultOK && errorOK) {
+				t.Errorf("%v - Expected error: %v | Actual Error: %v", tcName, tc.ExpectedError, actualError)
+			}
+		})
+	}
+
+	// Test for different Kind values
+	os.Setenv(envAccountID, "username")
+	os.Setenv(envAccessToken, "token")
+	defer os.Unsetenv(envAccountID)
+	defer os.Unsetenv(envAccessToken)
+
+	kindCases := map[string]struct {
+		Kind                          string
+		ExpectedResult, ExpectedError bool
+	}{
+		"Wrong username":       {"user/unamebad", false, true},
+		"Wrong project key":    {"project/NOYA", false, true},
+		"Unsupported kind":     {"proj/GIGA", false, true},
+		"Correct username":     {"user/username", true, false},
+		"Correct project name": {"project/TEST", true, false},
+	}
+
+	for tcName, tc := range kindCases {
+		t.Run(tcName, func(t *testing.T) {
+
+			tcSource := source
+			tcSource.Kind = tc.Kind
+
+			// New
+			input, err = bbcloud.New(tcSource)
+			if err != nil {
+				t.Error("Plugin initiation failed")
+			}
+
+			// Set mock client
+			mockInput := input.(*bbcloud.Cloud)
+			mockInput.API.Teams = &mock.Teams{AccountID: "username", AccessToken: "token"}
+			mockInput.API.Repositories = &mock.Repositories{AccountID: "username", AccessToken: "token"}
+
+			// Call Authenticate()
+			actualResult, err := mockInput.Authenticate()
+			actualError := (err != nil)
+
+			// Validate
+			resultOK := (actualResult == tc.ExpectedResult)
+			errorOK := (actualError == tc.ExpectedError)
+			if !(resultOK && errorOK) {
+				t.Error("Authentication test failed")
+			}
+		})
+	}
+}
+
+func TestRepositories(t *testing.T) {
+	var input plugins.Input
+	var err error
+
+	cases := map[string]struct {
+		Kind                          string
+		ExpectedResult, ExpectedError bool
+	}{
+		"Wrong username":       {"user/unamebad", false, true},
+		"Wrong project key":    {"project/NOYA", false, false},
+		"Unsupported kind":     {"proj/GIGA", false, true},
+		"Correct username":     {"user/username", true, false},
+		"Correct project name": {"project/TEST", true, false},
+	}
+
+	os.Setenv(envAccountID, "username")
+	os.Setenv(envAccessToken, "token")
+	defer os.Unsetenv(envAccountID)
+	defer os.Unsetenv(envAccessToken)
+
+	for tcName, tc := range cases {
+		t.Run(tcName, func(t *testing.T) {
+
+			tcSource := source
+			tcSource.Kind = tc.Kind
+
+			// New
+			input, err = bbcloud.New(tcSource)
+			if err != nil {
+				t.Error("Plugin initiation failed")
+			}
+
+			// Set mock client
+			mockInput := input.(*bbcloud.Cloud)
+			mockInput.API.Teams = &mock.Teams{AccountID: "username", AccessToken: "token"}
+			mockInput.API.Repositories = &mock.Repositories{AccountID: "username", AccessToken: "token"}
+
+			// Call Repositories()
+			result, err := mockInput.Repositories(true)
+
+			actualResult := (result != nil) && (len(result) != 0)
+			actualError := (err != nil)
+
+			// Validate
+			resultOK := (actualResult == tc.ExpectedResult)
+			errorOK := (actualError == tc.ExpectedError)
+			if !(resultOK && errorOK) {
+				t.Error("Repositories() test failed")
+			}
+		})
 	}
 }
