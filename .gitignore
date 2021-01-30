@@ -5,6 +5,8 @@ bin/
 dist/
 vendor/
 
+syncDirectory/
+
 meraki-cli
 cp.out
 coverage.html

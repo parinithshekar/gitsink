@@ -12,6 +12,7 @@ import (
 
 	common "github.com/parinithshekar/gitsink/common"
 	config "github.com/parinithshekar/gitsink/common/config"
+	utils "github.com/parinithshekar/gitsink/common/utils"
 	logger "github.com/parinithshekar/gitsink/wrap/logrus/v1"
 )
 
@@ -19,12 +20,30 @@ var (
 	log = logger.New()
 )
 
+// Teams interface declares methods to implement in the API object
+type Teams interface {
+	Projects(string) (interface{}, error)
+	Repositories(string) (interface{}, error)
+}
+
+// Repositories interface declares methods to implement in the API object
+type Repositories interface {
+	ListForAccount(*bitbucket.RepositoriesOptions) (*bitbucket.RepositoriesRes, error)
+}
+
 // Cloud struct defines data fields in bitbucket-cloud object
 type Cloud struct {
 	accountID   string
 	accessToken string
 	kind        string
-	API         *bitbucket.Client
+	filters     struct {
+		include []string
+		exclude []string
+	}
+	API struct {
+		Teams        Teams
+		Repositories Repositories
+	}
 }
 
 // setAPIClient builds and returns an object to facilitate calls to the API
@@ -33,7 +52,8 @@ func (cloud *Cloud) setAPIClient() {
 	accountID, accessToken, _ := cloud.Credentials()
 
 	client := bitbucket.NewBasicAuth(accountID, accessToken)
-	cloud.API = client
+	cloud.API.Teams = client.Teams
+	cloud.API.Repositories = client.Repositories
 }
 
 // Credentials fetches amd returns the accountID and accessToken from environment variables
@@ -83,6 +103,9 @@ func New(source config.Source) (*Cloud, error) {
 	cloud.accessToken = source.AccessToken
 
 	cloud.kind = source.Kind
+
+	cloud.filters.include = source.Repositories.Include
+	cloud.filters.exclude = source.Repositories.Exclude
 
 	cloud.setAPIClient()
 	return cloud, nil
@@ -193,6 +216,7 @@ func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
 				repositories = append(repositories, newRepo)
 			}
 		}
+		repositories = utils.FilterRepos(repositories, cloud.filters.include, cloud.filters.exclude)
 		return repositories, nil
 
 	case "user":
@@ -207,11 +231,21 @@ func (cloud Cloud) Repositories(metadata bool) ([]common.Repository, error) {
 
 		repositories := []common.Repository{}
 		for _, repo := range result.Items {
+			repoBytes, _ := json.MarshalIndent(repo, "", "  ")
+			repoJSON := string(repoBytes)
+
+			httpCloneLink := gjson.Get(repoJSON, `Links.clone.#(name%"http*").href`).String()
+			slug := gjson.Get(repoJSON, `Slug`).String()
+			description := gjson.Get(repoJSON, `Description`).String()
+
 			newRepo := common.Repository{
-				Slug: repo.Slug,
+				Slug:        slug,
+				Source:      httpCloneLink,
+				Description: description,
 			}
 			repositories = append(repositories, newRepo)
 		}
+		repositories = utils.FilterRepos(repositories, cloud.filters.include, cloud.filters.exclude)
 		return repositories, nil
 
 	default:

@@ -157,7 +157,6 @@ func Execute() { // hello
 			// Check if repos need to by synced or migrated
 			// Makes new repo on target if there doesn't already exist one
 			repos = output.SyncCheck(repos)
-			fmt.Println(repos)
 
 			// Start syncing repos
 			gitClient := git.New(input, output, integration.Name)
