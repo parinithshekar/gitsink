@@ -12,8 +12,7 @@ require (
 	github.com/pkg/profile v1.4.0
 	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.4.0
-	github.com/tidwall/gjson v1.6.0
-	github.com/tidwall/pretty v1.0.1 // indirect
+	github.com/tidwall/gjson v1.6.5
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.4
